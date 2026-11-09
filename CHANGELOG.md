@@ -1,6 +1,12 @@
+# v1.0.2
+
+- **Nuevo nombre:** «Chat Dpto. Compras Princess» (antes «Chat Princess»), en el icono, la cabecera, la pantalla de acceso y las notificaciones. El archivo de instalación se sigue llamando `ChatPrincess_<versión>.apk`.
+- **La corona de Princess** como icono de la app (en blanco sobre el azul marino de las apps de Compras), en la cabecera de la pantalla principal, en la pantalla de acceso y en las notificaciones.
+- Es la primera versión que llega como actualización desde la app: al abrir Chat Dpto. Compras Princess 1.0.0 aparece el aviso «Nueva versión 1.0.2».
+
 # v1.0.0
 
-Primera versión de **Chat Princess** para Android: el chat de Control de Pedidos en el móvil.
+Primera versión de **Chat Dpto. Compras Princess** para Android: el chat de Control de Pedidos en el móvil.
 
 - **Acceso** con el usuario y la contraseña de Control de Pedidos, como el Organizador. Se guardan cifrados en el móvil.
 - **Varios dispositivos a la vez**: se puede estar conectado en el Organizador y en el móvil. Los mensajes llegan a los dos, también los que envías tú.

@@ -1,4 +1,4 @@
-// Chat Princess (Android). La idea y el desarrollo de la aplicación son de Víctor Alejandro Martín Andrade,
+// Chat Dpto. Compras Princess (Android). La idea y el desarrollo de la aplicación son de Víctor Alejandro Martín Andrade,
 // para el Departamento de Central de Compras de Princess Hotels en Canarias.
 import java.util.Properties
 
@@ -24,8 +24,8 @@ android {
         applicationId = "com.princesscanarias.chat"
         minSdk = 26
         targetSdk = 35
-        versionCode = 100       // ← subir en cada versión (1.0.0 → 100, 1.0.2 → 102…)
-        versionName = "1.0.0"   // ← debe coincidir con la etiqueta de la Release (v1.0.0)
+        versionCode = 102       // ← subir en cada versión (1.0.0 → 100, 1.0.2 → 102…)
+        versionName = "1.0.2"   // ← debe coincidir con la etiqueta de la Release (v + versionName)
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

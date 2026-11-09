@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Chat Princess (Android). Idea y desarrollo: Víctor Alejandro Martín Andrade. -->
+<!-- Chat Dpto. Compras Princess (Android). Idea y desarrollo: Víctor Alejandro Martín Andrade. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />

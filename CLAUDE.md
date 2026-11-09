@@ -1,4 +1,4 @@
-# CLAUDE.md — Chat Princess (Android)
+# CLAUDE.md — Chat Dpto. Compras Princess (Android)
 
 > **Autoría:** la idea y el desarrollo de la aplicación, incluidas sus pruebas, son de **Víctor Alejandro Martín Andrade**, para el Departamento de Central de Compras de Princess Hotels en Canarias. Ver `AUTORIA.md`.
 

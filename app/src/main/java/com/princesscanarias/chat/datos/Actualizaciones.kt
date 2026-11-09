@@ -1,4 +1,4 @@
-// Chat Princess (Android). La idea y el desarrollo de la aplicación son de Víctor Alejandro Martín Andrade,
+// Chat Dpto. Compras Princess (Android). La idea y el desarrollo de la aplicación son de Víctor Alejandro Martín Andrade,
 // para el Departamento de Central de Compras de Princess Hotels en Canarias.
 package com.princesscanarias.chat.datos
 
@@ -71,7 +71,7 @@ object Actualizaciones {
         if (Build.VERSION.SDK_INT >= 26 && !context.packageManager.canRequestPackageInstalls()) {
             context.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + context.packageName))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            throw ErrorChat("Permite «Instalar apps desconocidas» para Chat Princess y vuelve a pulsar Instalar.")
+            throw ErrorChat("Permite «Instalar apps desconocidas» para Chat Dpto. Compras Princess y vuelve a pulsar Instalar.")
         }
         val uri = FileProvider.getUriForFile(context, context.packageName + ".archivos", apk)
         context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")

@@ -1,4 +1,4 @@
-// Chat Princess (Android). La idea y el desarrollo de la aplicación son de Víctor Alejandro Martín Andrade,
+// Chat Dpto. Compras Princess (Android). La idea y el desarrollo de la aplicación son de Víctor Alejandro Martín Andrade,
 // para el Departamento de Central de Compras de Princess Hotels en Canarias.
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
@@ -11,6 +11,7 @@ import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -31,6 +32,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -41,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.princesscanarias.chat.BuildConfig
+import com.princesscanarias.chat.R
 import com.princesscanarias.chat.datos.EstadoConexion
 import com.princesscanarias.chat.datos.Fechas
 import com.princesscanarias.chat.datos.Mensaje
@@ -67,7 +70,7 @@ fun AppChat(e: EstadoApp) {
         AlertDialog(
             onDismissRequest = { e.actualizacion.value = null },
             title = { Text("Nueva versión ${v.version}") },
-            text = { Text(v.notas.replace(Regex("[#*`]"), "").trim().take(600).ifBlank { "Hay una versión nueva de Chat Princess." }) },
+            text = { Text(v.notas.replace(Regex("[#*`]"), "").trim().take(600).ifBlank { "Hay una versión nueva de Chat Dpto. Compras Princess." }) },
             confirmButton = { TextButton({ e.actualizacion.value = null; e.instalarActualizacion(v) }) { Text("Descargar e instalar") } },
             dismissButton = { TextButton({ e.actualizacion.value = null }) { Text("Más tarde") } },
         )
@@ -75,12 +78,21 @@ fun AppChat(e: EstadoApp) {
 }
 
 @Composable
-private fun Cabecera(titulo: String, subtitulo: String? = null, atras: (() -> Unit)? = null, acciones: @Composable RowScope.() -> Unit = {}) {
+private fun Cabecera(titulo: String, subtitulo: String? = null, atras: (() -> Unit)? = null, corona: Boolean = false,
+                     tituloPequeno: Boolean = false,
+                     acciones: @Composable RowScope.() -> Unit = {}) {
     TopAppBar(
         title = {
-            Column {
-                Text(titulo, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold)
-                if (subtitulo != null) Text(subtitulo, fontSize = 12.sp, color = Colores.meta)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (corona) {   // la corona de Princess en la pantalla principal
+                    Image(painterResource(R.drawable.corona_blanca), contentDescription = "Princess",
+                        modifier = Modifier.height(30.dp).padding(end = 10.dp))
+                }
+                Column {
+                    Text(titulo, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold,
+                        fontSize = if (tituloPequeno) 17.sp else LocalTextStyle.current.fontSize)
+                    if (subtitulo != null) Text(subtitulo, fontSize = 12.sp, color = Colores.meta)
+                }
             }
         },
         navigationIcon = { if (atras != null) IconButton(atras) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Atrás") } },
@@ -101,11 +113,12 @@ fun PantallaAcceso(e: EstadoApp) {
     val entrar = { if (usuario.isNotBlank() && clave.isNotBlank()) e.entrar(usuario, clave) { error = it } }
 
     Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.size(84.dp).background(Colores.navy, CircleShape), contentAlignment = Alignment.Center) {
-            Icon(Icons.Default.Forum, null, tint = Colores.dorado, modifier = Modifier.size(44.dp))
+        Box(Modifier.size(96.dp).background(Colores.navy, CircleShape), contentAlignment = Alignment.Center) {
+            Image(painterResource(R.drawable.corona_blanca), contentDescription = "Princess", modifier = Modifier.height(52.dp))
         }
         Spacer(Modifier.height(16.dp))
-        Text("Chat Princess", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Colores.texto)
+        Text("Chat Dpto. Compras", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Colores.texto)
+        Text("Princess", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Colores.texto)
         Text("Central de Compras · Princess Canarias", fontSize = 13.sp, color = Colores.dorado)
         Spacer(Modifier.height(28.dp))
         Text("Entra con tu usuario y tu contraseña de Control de Pedidos.", color = Colores.meta, textAlign = TextAlign.Center)
@@ -138,7 +151,7 @@ fun PantallaLista(e: EstadoApp) {
     val estado by e.chat.estado.collectAsState()
     LaunchedEffect(Unit) { e.cargarCanales() }
     Column(Modifier.fillMaxSize()) {
-        Cabecera("Chat Princess", subtitulo = textoEstado(estado)) {
+        Cabecera("Chat Dpto. Compras Princess", subtitulo = textoEstado(estado), corona = true, tituloPequeno = true) {
             IconButton({ e.cargarCanales() }) { Icon(Icons.Default.Refresh, "Actualizar") }
             IconButton({ e.pantalla.value = Pantalla.Ajustes }) { Icon(Icons.Default.Settings, "Ajustes") }
         }
@@ -347,7 +360,7 @@ fun PantallaAjustes(e: EstadoApp) {
             Text("Sesión: ${e.chat.credenciales.nombre ?: ""} (${e.chat.credenciales.usuario ?: ""})", color = Colores.texto)
             HorizontalDivider(color = Colores.caja)
             Text("Avisos con la app cerrada", fontWeight = FontWeight.Bold, color = Colores.dorado)
-            Text("La app mantiene la conexión con un aviso fijo «Chat conectado». Para que el móvil no la corte, quita el ahorro de batería para Chat Princess.",
+            Text("La app mantiene la conexión con un aviso fijo «Chat conectado». Para que el móvil no la corte, quita el ahorro de batería para Chat Dpto. Compras Princess.",
                 color = Colores.meta, fontSize = 13.sp)
             OutlinedButton({
                 ctx.startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + ctx.packageName)))

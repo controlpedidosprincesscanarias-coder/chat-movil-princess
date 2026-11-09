@@ -1,4 +1,4 @@
-# Compila Chat Princess (Android) y genera la .apk firmada.
+# Compila Chat Dpto. Compras Princess (Android) y genera la .apk firmada.
 #
 # La idea y el desarrollo de la aplicación, incluidas sus pruebas, son de Víctor Alejandro Martín Andrade,
 # para el Departamento de Central de Compras de Princess Hotels en Canarias.
@@ -98,5 +98,5 @@ jobs:
           gh release create "v${{ steps.version.outputs.version }}" \
             "salida/${{ steps.version.outputs.apk }}" "salida/${{ steps.version.outputs.apk }}.sha256" \
             --draft --target "${{ github.sha }}" \
-            --title "Chat Princess v${{ steps.version.outputs.version }}" --notes-file notas_release.md
+            --title "Chat Dpto. Compras Princess v${{ steps.version.outputs.version }}" --notes-file notas_release.md
           echo "Borrador creado. Revísalo en Releases y pulsa «Publish release» cuando quieras que se actualicen los móviles."
