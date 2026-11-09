@@ -1,4 +1,4 @@
-# Autoría — Chat Princess (Android)
+# Autoría — Chat Dpto. Compras Princess (Android)
 
 **Idea y desarrollo:** Víctor Alejandro Martín Andrade
 

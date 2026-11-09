@@ -1,4 +1,4 @@
-# Chat Princess (Android)
+# Chat Dpto. Compras Princess (Android)
 
 > **Autoría:** la idea y el desarrollo de la aplicación, incluidas sus pruebas, son de **Víctor Alejandro Martín Andrade**, para el Departamento de Central de Compras de Princess Hotels en Canarias. Ver `AUTORIA.md`.
 
@@ -36,7 +36,7 @@ Las direcciones son las de los Workers de Cloudflare (`Config.kt`), nunca las de
 
 ## Compilar y publicar
 
-La compilación se hace en GitHub, en **Actions → «Compilar Chat Princess» → Run workflow**:
+La compilación se hace en GitHub, en **Actions → «Compilar Chat Dpto. Compras Princess» → Run workflow**:
 
 - **solo-descarga**: deja la `.apk` y su `.sha256` como descarga del propio workflow, para probar.
 - **borrador**: además crea una Release en **borrador**. Los móviles no la ven hasta que se pulsa **«Publish release»**.

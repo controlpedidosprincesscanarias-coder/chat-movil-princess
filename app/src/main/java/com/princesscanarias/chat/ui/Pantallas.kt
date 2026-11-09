@@ -1,4 +1,4 @@
-// Chat Princess (Android). La idea y el desarrollo de la aplicación son de Víctor Alejandro Martín Andrade,
+// Chat Dpto. Compras Princess (Android). La idea y el desarrollo de la aplicación son de Víctor Alejandro Martín Andrade,
 // para el Departamento de Central de Compras de Princess Hotels en Canarias.
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
@@ -70,7 +70,7 @@ fun AppChat(e: EstadoApp) {
         AlertDialog(
             onDismissRequest = { e.actualizacion.value = null },
             title = { Text("Nueva versión ${v.version}") },
-            text = { Text(v.notas.replace(Regex("[#*`]"), "").trim().take(600).ifBlank { "Hay una versión nueva de Chat Princess." }) },
+            text = { Text(v.notas.replace(Regex("[#*`]"), "").trim().take(600).ifBlank { "Hay una versión nueva de Chat Dpto. Compras Princess." }) },
             confirmButton = { TextButton({ e.actualizacion.value = null; e.instalarActualizacion(v) }) { Text("Descargar e instalar") } },
             dismissButton = { TextButton({ e.actualizacion.value = null }) { Text("Más tarde") } },
         )
@@ -79,6 +79,7 @@ fun AppChat(e: EstadoApp) {
 
 @Composable
 private fun Cabecera(titulo: String, subtitulo: String? = null, atras: (() -> Unit)? = null, corona: Boolean = false,
+                     tituloPequeno: Boolean = false,
                      acciones: @Composable RowScope.() -> Unit = {}) {
     TopAppBar(
         title = {
@@ -88,7 +89,8 @@ private fun Cabecera(titulo: String, subtitulo: String? = null, atras: (() -> Un
                         modifier = Modifier.height(30.dp).padding(end = 10.dp))
                 }
                 Column {
-                    Text(titulo, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold)
+                    Text(titulo, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold,
+                        fontSize = if (tituloPequeno) 17.sp else LocalTextStyle.current.fontSize)
                     if (subtitulo != null) Text(subtitulo, fontSize = 12.sp, color = Colores.meta)
                 }
             }
@@ -115,7 +117,8 @@ fun PantallaAcceso(e: EstadoApp) {
             Image(painterResource(R.drawable.corona_blanca), contentDescription = "Princess", modifier = Modifier.height(52.dp))
         }
         Spacer(Modifier.height(16.dp))
-        Text("Chat Princess", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Colores.texto)
+        Text("Chat Dpto. Compras", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Colores.texto)
+        Text("Princess", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Colores.texto)
         Text("Central de Compras · Princess Canarias", fontSize = 13.sp, color = Colores.dorado)
         Spacer(Modifier.height(28.dp))
         Text("Entra con tu usuario y tu contraseña de Control de Pedidos.", color = Colores.meta, textAlign = TextAlign.Center)
@@ -148,7 +151,7 @@ fun PantallaLista(e: EstadoApp) {
     val estado by e.chat.estado.collectAsState()
     LaunchedEffect(Unit) { e.cargarCanales() }
     Column(Modifier.fillMaxSize()) {
-        Cabecera("Chat Princess", subtitulo = textoEstado(estado), corona = true) {
+        Cabecera("Chat Dpto. Compras Princess", subtitulo = textoEstado(estado), corona = true, tituloPequeno = true) {
             IconButton({ e.cargarCanales() }) { Icon(Icons.Default.Refresh, "Actualizar") }
             IconButton({ e.pantalla.value = Pantalla.Ajustes }) { Icon(Icons.Default.Settings, "Ajustes") }
         }
@@ -357,7 +360,7 @@ fun PantallaAjustes(e: EstadoApp) {
             Text("Sesión: ${e.chat.credenciales.nombre ?: ""} (${e.chat.credenciales.usuario ?: ""})", color = Colores.texto)
             HorizontalDivider(color = Colores.caja)
             Text("Avisos con la app cerrada", fontWeight = FontWeight.Bold, color = Colores.dorado)
-            Text("La app mantiene la conexión con un aviso fijo «Chat conectado». Para que el móvil no la corte, quita el ahorro de batería para Chat Princess.",
+            Text("La app mantiene la conexión con un aviso fijo «Chat conectado». Para que el móvil no la corte, quita el ahorro de batería para Chat Dpto. Compras Princess.",
                 color = Colores.meta, fontSize = 13.sp)
             OutlinedButton({
                 ctx.startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + ctx.packageName)))
