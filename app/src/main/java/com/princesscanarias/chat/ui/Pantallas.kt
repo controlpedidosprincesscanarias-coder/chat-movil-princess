@@ -11,6 +11,7 @@ import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -31,6 +32,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -41,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.princesscanarias.chat.BuildConfig
+import com.princesscanarias.chat.R
 import com.princesscanarias.chat.datos.EstadoConexion
 import com.princesscanarias.chat.datos.Fechas
 import com.princesscanarias.chat.datos.Mensaje
@@ -75,12 +78,19 @@ fun AppChat(e: EstadoApp) {
 }
 
 @Composable
-private fun Cabecera(titulo: String, subtitulo: String? = null, atras: (() -> Unit)? = null, acciones: @Composable RowScope.() -> Unit = {}) {
+private fun Cabecera(titulo: String, subtitulo: String? = null, atras: (() -> Unit)? = null, corona: Boolean = false,
+                     acciones: @Composable RowScope.() -> Unit = {}) {
     TopAppBar(
         title = {
-            Column {
-                Text(titulo, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold)
-                if (subtitulo != null) Text(subtitulo, fontSize = 12.sp, color = Colores.meta)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (corona) {   // la corona de Princess en la pantalla principal
+                    Image(painterResource(R.drawable.corona_blanca), contentDescription = "Princess",
+                        modifier = Modifier.height(30.dp).padding(end = 10.dp))
+                }
+                Column {
+                    Text(titulo, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold)
+                    if (subtitulo != null) Text(subtitulo, fontSize = 12.sp, color = Colores.meta)
+                }
             }
         },
         navigationIcon = { if (atras != null) IconButton(atras) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Atrás") } },
@@ -101,8 +111,8 @@ fun PantallaAcceso(e: EstadoApp) {
     val entrar = { if (usuario.isNotBlank() && clave.isNotBlank()) e.entrar(usuario, clave) { error = it } }
 
     Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.size(84.dp).background(Colores.navy, CircleShape), contentAlignment = Alignment.Center) {
-            Icon(Icons.Default.Forum, null, tint = Colores.dorado, modifier = Modifier.size(44.dp))
+        Box(Modifier.size(96.dp).background(Colores.navy, CircleShape), contentAlignment = Alignment.Center) {
+            Image(painterResource(R.drawable.corona_blanca), contentDescription = "Princess", modifier = Modifier.height(52.dp))
         }
         Spacer(Modifier.height(16.dp))
         Text("Chat Princess", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Colores.texto)
@@ -138,7 +148,7 @@ fun PantallaLista(e: EstadoApp) {
     val estado by e.chat.estado.collectAsState()
     LaunchedEffect(Unit) { e.cargarCanales() }
     Column(Modifier.fillMaxSize()) {
-        Cabecera("Chat Princess", subtitulo = textoEstado(estado)) {
+        Cabecera("Chat Princess", subtitulo = textoEstado(estado), corona = true) {
             IconButton({ e.cargarCanales() }) { Icon(Icons.Default.Refresh, "Actualizar") }
             IconButton({ e.pantalla.value = Pantalla.Ajustes }) { Icon(Icons.Default.Settings, "Ajustes") }
         }

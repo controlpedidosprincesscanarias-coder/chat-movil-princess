@@ -1,3 +1,8 @@
+# v1.0.2
+
+- **La corona de Princess** como icono de la app (en blanco sobre el azul marino de las apps de Compras), en la cabecera de la pantalla principal, en la pantalla de acceso y en las notificaciones.
+- Es la primera versión que llega como actualización desde la app: al abrir Chat Princess 1.0.0 aparece el aviso «Nueva versión 1.0.2».
+
 # v1.0.0
 
 Primera versión de **Chat Princess** para Android: el chat de Control de Pedidos en el móvil.
