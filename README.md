@@ -10,6 +10,9 @@ El chat de Control de Pedidos en el móvil. Es el mismo chat que el del Organiza
 
 1. **Instalar.** Descarga `ChatPrincess_<versión>.apk` de la última Release de este repositorio y ábrela en el móvil. Desde el Organizador (v4.18.24), el botón **📱 Chat en el móvil** del chat muestra un código QR que lleva a esa página, y el capítulo 8 de su Manual de usuario lo explica paso a paso.
    - La primera vez, Android pide permitir «Instalar apps desconocidas» al navegador o a la app de archivos.
+   - Si el navegador avisa de que el archivo «puede ser dañino»: «Descargar de todas formas».
+   - Si aparece **Google Play Protect** («App no segura», «App desconocida»): «Más detalles» → «Instalar de todas formas» (en algunos móviles, «Instalar sin analizar»). Avisa de cualquier app que no viene de Google Play y pide permisos de segundo plano, arranque y autoinstalación, que esta app necesita para avisar con la app cerrada y actualizarse sola. Puede volver a salir al actualizar.
+   - Descargarla solo desde la Release oficial (o el QR del Organizador), nunca de una copia reenviada.
    - Necesita Android 8 o posterior.
 2. **Entrar** con el usuario y la contraseña de **Control de Pedidos**.
 3. **Permitir las notificaciones** cuando lo pida.
