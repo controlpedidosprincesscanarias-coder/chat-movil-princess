@@ -50,6 +50,7 @@ data class Canal(
     val noLeidos: Int,
     val ultimoContenido: String?,
     val ultimoCreadoEn: String?,
+    val avatar: String? = null,     // (v1.0.4) foto del compañero (privado) o del grupo
 ) {
     companion object {
         fun deJson(o: JSONObject) = Canal(
@@ -60,11 +61,12 @@ data class Canal(
             noLeidos = o.optInt("no_leidos", 0),
             ultimoContenido = o.optJSONObject("ultimo_mensaje")?.texto("contenido"),
             ultimoCreadoEn = o.optJSONObject("ultimo_mensaje")?.texto("creado_en"),
+            avatar = o.texto("avatar"),
         )
     }
 }
 
-data class Usuario(val username: String, val nombre: String, val rol: String?)
+data class Usuario(val username: String, val nombre: String, val rol: String?, val avatar: String? = null)
 
 /** Formatos de fecha y hora de las burbujas (hora local del móvil). */
 object Fechas {

@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -79,11 +81,12 @@ fun AppChat(e: EstadoApp) {
 
 @Composable
 private fun Cabecera(titulo: String, subtitulo: String? = null, atras: (() -> Unit)? = null, corona: Boolean = false,
-                     tituloPequeno: Boolean = false,
+                     tituloPequeno: Boolean = false, avatar: (@Composable () -> Unit)? = null,
                      acciones: @Composable RowScope.() -> Unit = {}) {
     TopAppBar(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (avatar != null) { avatar(); Spacer(Modifier.width(10.dp)) }
                 if (corona) {   // la corona de Princess en la pantalla principal
                     Image(painterResource(R.drawable.corona_blanca), contentDescription = "Princess",
                         modifier = Modifier.height(30.dp).padding(end = 10.dp))
@@ -150,6 +153,8 @@ fun PantallaAcceso(e: EstadoApp) {
 fun PantallaLista(e: EstadoApp) {
     val estado by e.chat.estado.collectAsState()
     LaunchedEffect(Unit) { e.cargarCanales() }
+    val fotos by e.chat.fotosCambiadas.collectAsState()
+    LaunchedEffect(fotos) { if (fotos > 0) e.cargarCanales() }   // una foto nueva (también de grupo)
     Column(Modifier.fillMaxSize()) {
         Cabecera("Chat Dpto. Compras Princess", subtitulo = textoEstado(estado), corona = true, tituloPequeno = true) {
             IconButton({ e.cargarCanales() }) { Icon(Icons.Default.Refresh, "Actualizar") }
@@ -161,10 +166,12 @@ fun PantallaLista(e: EstadoApp) {
                     val titulo = e.titulo(c)
                     Row(Modifier.fillMaxWidth().clickable { e.abrirConversacion(c.id, null, titulo) }
                         .padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(44.dp).background(if (c.tipo == "general") Colores.cabecera else Colores.ajeno, CircleShape),
-                            contentAlignment = Alignment.Center) {
-                            Icon(when (c.tipo) { "general" -> Icons.Default.Forum; "grupo" -> Icons.Default.Groups; else -> Icons.Default.Person },
-                                null, tint = Colores.texto)
+                        when (c.tipo) {
+                            "general" -> Box(Modifier.size(44.dp).background(Colores.cabecera, CircleShape), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Forum, null, tint = Colores.texto)
+                            }
+                            "grupo" -> Avatar(c.avatar, titulo, icono = IconoGrupo)
+                            else -> Avatar(c.avatar ?: e.chat.fotoDe(c.otroUsuario), titulo)
                         }
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
@@ -212,7 +219,11 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
     var uriFoto by remember { mutableStateOf<Uri?>(null) }
     val lista = rememberLazyListState()
     val estado by e.chat.estado.collectAsState()
+    val fotos by e.chat.fotosCambiadas.collectAsState()
     BackHandler { e.cerrarConversacion() }
+    val canal = remember(p.canalId, fotos, e.canales.size) { e.canal(p.canalId) }
+    val esGrupo = p.canalId.orEmpty().startsWith("grp:")
+    val fotoGrupo = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { e.cambiarFoto(it, p.canalId) }
 
     fun preparar(uri: Uri?, nombre: String? = null) {
         if (uri == null) return
@@ -227,13 +238,19 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
     LaunchedEffect(e.mensajes.size) { if (e.mensajes.isNotEmpty()) lista.animateScrollToItem(e.mensajes.size - 1) }
 
     Column(Modifier.fillMaxSize().imePadding()) {
-        Cabecera(p.titulo, subtitulo = if (estado == EstadoConexion.CONECTADO) null else textoEstado(estado), atras = { e.cerrarConversacion() })
+        Cabecera(p.titulo, subtitulo = if (estado == EstadoConexion.CONECTADO) null else textoEstado(estado), atras = { e.cerrarConversacion() },
+            avatar = if (p.canalId == "general") null else {
+                { Avatar(if (esGrupo) canal?.avatar else canal?.avatar ?: e.chat.fotoDe(canal?.otroUsuario ?: p.destinatario), p.titulo, 36.dp,
+                    icono = if (esGrupo) IconoGrupo else null) }
+            }) {
+            if (esGrupo) IconButton({ fotoGrupo.launch("image/*") }) { Icon(Icons.Default.AddAPhoto, "Cambiar la foto del grupo") }
+        }
         if (e.cargando.value && e.mensajes.isEmpty()) LinearProgressIndicator(Modifier.fillMaxWidth(), color = Colores.dorado)
         LazyColumn(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 10.dp), state = lista,
             contentPadding = PaddingValues(vertical = 8.dp)) {
             items(e.mensajes, key = { it.id ?: it.hashCode().toLong() }) { m ->
                 Burbuja(m, propio = m.remitente.equals(e.chat.username, true), quien = e.chat.nombreDe(m.remitente),
-                    mostrarNombre = !p.canalId.orEmpty().startsWith("dm:")) { e.abrirAdjunto(m) }
+                    mostrarNombre = !p.canalId.orEmpty().startsWith("dm:"), foto = e.chat.fotoDe(m.remitente)) { e.abrirAdjunto(m) }
             }
         }
         if (emoticonos) PanelEmoticonos { t -> texto = Emoticonos.anadir(texto, t) }
@@ -267,7 +284,18 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
 }
 
 @Composable
-private fun Burbuja(m: Mensaje, propio: Boolean, quien: String, mostrarNombre: Boolean, abrirAdjunto: () -> Unit) {
+private fun Burbuja(m: Mensaje, propio: Boolean, quien: String, mostrarNombre: Boolean, foto: String? = null, abrirAdjunto: () -> Unit) {
+    // (v1.0.4) En grupos y en el General, la foto de quien escribe a la izquierda
+    if (!propio && mostrarNombre) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+            Avatar(foto, quien, 30.dp, modifier = Modifier.padding(end = 6.dp, bottom = 4.dp))
+            Box(Modifier.weight(1f)) { BurbujaSola(m, false, quien, true, abrirAdjunto) }
+        }
+    } else BurbujaSola(m, propio, quien, mostrarNombre, abrirAdjunto)
+}
+
+@Composable
+private fun BurbujaSola(m: Mensaje, propio: Boolean, quien: String, mostrarNombre: Boolean, abrirAdjunto: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(vertical = 3.dp), horizontalAlignment = if (propio) Alignment.End else Alignment.Start) {
         if (!propio && mostrarNombre) Text(quien, fontSize = 11.sp, color = Colores.meta, modifier = Modifier.padding(start = 6.dp, bottom = 1.dp))
         Column(Modifier.widthIn(max = 300.dp)
@@ -321,6 +349,7 @@ fun PantallaNueva(e: EstadoApp) {
                 Row(Modifier.fillMaxWidth().clickable { if (marcado) elegidos.remove(u.username) else elegidos.add(u.username) }
                     .padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(marcado, { if (it) elegidos.add(u.username) else elegidos.remove(u.username) })
+                    Avatar(u.avatar, u.nombre, 36.dp, modifier = Modifier.padding(end = 10.dp))
                     Column {
                         Text(u.nombre, color = Colores.texto)
                         u.rol?.let { Text(it, fontSize = 11.sp, color = Colores.meta) }
@@ -354,10 +383,29 @@ fun PantallaAjustes(e: EstadoApp) {
     BackHandler { e.pantalla.value = Pantalla.Lista }
     val pm = ctx.getSystemService(PowerManager::class.java)
     val sinAhorro = pm?.isIgnoringBatteryOptimizations(ctx.packageName) == true
+    val fotos by e.chat.fotosCambiadas.collectAsState()
+    val miFoto = remember(fotos) { e.chat.miFoto }
+    var uriPerfil by remember { mutableStateOf<Uri?>(null) }
+    val galeriaPerfil = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { e.cambiarFoto(it) }
+    val camaraPerfil = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok -> if (ok) e.cambiarFoto(uriPerfil) }
     Column(Modifier.fillMaxSize()) {
         Cabecera("Ajustes", atras = { e.pantalla.value = Pantalla.Lista })
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text("Sesión: ${e.chat.credenciales.nombre ?: ""} (${e.chat.credenciales.usuario ?: ""})", color = Colores.texto)
+            HorizontalDivider(color = Colores.caja)
+            Text("Mi foto", fontWeight = FontWeight.Bold, color = Colores.dorado)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Avatar(miFoto, e.chat.credenciales.nombre ?: "?", 64.dp)
+                Spacer(Modifier.width(14.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton({ galeriaPerfil.launch("image/*") }) { Text("🖼 Galería") }
+                        OutlinedButton({ uriPerfil = Archivos.uriFotoNueva(ctx); camaraPerfil.launch(uriPerfil!!) }) { Text("📷 Cámara") }
+                    }
+                    if (miFoto != null) TextButton({ e.quitarMiFoto() }) { Text("Quitar la foto", color = Colores.error) }
+                }
+            }
+            Text("La ven tus compañeros en el chat del móvil y del Organizador.", color = Colores.meta, fontSize = 12.sp)
             HorizontalDivider(color = Colores.caja)
             Text("Avisos con la app cerrada", fontWeight = FontWeight.Bold, color = Colores.dorado)
             Text("La app mantiene la conexión con un aviso fijo «Chat conectado». Para que el móvil no la corte, quita el ahorro de batería para Chat Dpto. Compras Princess.",

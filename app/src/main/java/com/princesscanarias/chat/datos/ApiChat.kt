@@ -90,7 +90,7 @@ class ApiChat(
     fun canales(): List<Canal> = peticion("/api/chat/canales").optJSONArray("canales").lista { Canal.deJson(it) }
 
     fun usuarios(): List<Usuario> = peticion("/api/chat/usuarios").optJSONArray("usuarios").lista {
-        Usuario(it.texto("username") ?: "", it.texto("nombre") ?: it.texto("username") ?: "", it.texto("rol"))
+        Usuario(it.texto("username") ?: "", it.texto("nombre") ?: it.texto("username") ?: "", it.texto("rol"), it.texto("avatar"))
     }
 
     /** Historial (últimos 50). Al pedirlo, el servidor marca la conversación como leída. */
@@ -118,6 +118,18 @@ class ApiChat(
             .put("contenido_base64", java.util.Base64.getEncoder().encodeToString(datos))
         val d = peticion("/api/chat/mensajes/archivo", "POST", cuerpo)
         return Mensaje.deJson(d.getJSONObject("mensaje"))
+    }
+
+    /** (v1.0.4) Mi foto de perfil (URL o null). */
+    fun miAvatar(): String? = peticion("/api/chat/avatar").texto("avatar")
+
+    /** Pone (o, con datos null, quita) la foto propia o, con canalId, la de un grupo. Devuelve la URL nueva. */
+    fun cambiarAvatar(datosJpeg: ByteArray?, canalId: String? = null): String? {
+        val cuerpo = JSONObject()
+        if (canalId != null) cuerpo.put("canal_id", canalId)
+        if (datosJpeg == null) cuerpo.put("borrar", true)
+        else cuerpo.put("contenido_base64", java.util.Base64.getEncoder().encodeToString(datosJpeg))
+        return peticion("/api/chat/avatar", "POST", cuerpo).texto("avatar")
     }
 
     fun crearGrupo(nombre: String, usuarios: List<String>): String {

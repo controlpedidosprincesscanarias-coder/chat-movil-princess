@@ -40,6 +40,15 @@ class Chat(context: Context) {
     val errores: SharedFlow<String> = _errores
 
     private val nombres = ConcurrentHashMap<String, String>()
+    /** (v1.0.4) Fotos de perfil: usuario → URL (las de grupo van en cada Canal). */
+    private val fotos = ConcurrentHashMap<String, String>()
+    private val _fotosCambiadas = MutableStateFlow(0)
+    /** Cambia cada vez que llega una foto nueva (para refrescar la interfaz). */
+    val fotosCambiadas: StateFlow<Int> = _fotosCambiadas
+    @Volatile var miFoto: String? = null
+        private set
+
+    fun fotoDe(usuario: String?): String? = usuario?.let { fotos[it.lowercase()] }
     @Volatile private var socket: Socket? = null
     @Volatile private var ultimoLogin = 0L
 
@@ -72,7 +81,14 @@ class Chat(context: Context) {
     }
 
     fun refrescarNombres() {
-        try { api.usuarios().forEach { nombres[it.username.lowercase()] = it.nombre } } catch (e: Exception) {
+        try {
+            api.usuarios().forEach { u ->
+                nombres[u.username.lowercase()] = u.nombre
+                if (u.avatar != null) fotos[u.username.lowercase()] = u.avatar else fotos.remove(u.username.lowercase())
+            }
+            miFoto = api.miAvatar()
+            _fotosCambiadas.value++
+        } catch (e: Exception) {
             Log.w(TAG, "No se pudo leer la lista de usuarios: ${e.message}")
         }
         if (api.username.isNotBlank()) nombres[api.username.lowercase()] = api.nombre
@@ -124,11 +140,34 @@ class Chat(context: Context) {
         s.on("nuevo_mensaje") { args ->
             (args.firstOrNull() as? JSONObject)?.let { _nuevos.tryEmit(Mensaje.deJson(it)) }
         }
+        s.on("avatar_cambiado") { args ->
+            (args.firstOrNull() as? JSONObject)?.let { o ->
+                val clave = o.texto("clave") ?: return@let
+                val url = o.texto("avatar")
+                if (clave.startsWith("user:")) {
+                    val u = clave.removePrefix("user:")
+                    if (u == username.lowercase()) miFoto = url
+                    if (url != null) fotos[u] = url else fotos.remove(u)
+                }
+                _fotosCambiadas.value++   // los grupos se vuelven a leer con la lista de conversaciones
+            }
+        }
         s.on("error_chat") { args ->
             (args.firstOrNull() as? JSONObject)?.texto("error")?.let { _errores.tryEmit(it) }
         }
         socket = s
         s.connect()
+    }
+
+    /** (v1.0.4) Cambia mi foto o la de un grupo (bloqueante: llamar fuera del hilo principal). */
+    fun cambiarFoto(datosJpeg: ByteArray?, canalId: String? = null): String? {
+        val url = api.cambiarAvatar(datosJpeg, canalId)
+        if (canalId == null) {
+            miFoto = url
+            if (url != null) fotos[username.lowercase()] = url else fotos.remove(username.lowercase())
+        }
+        _fotosCambiadas.value++
+        return url
     }
 
     /** Para recibir al momento los mensajes de un grupo o privado recién creado. */

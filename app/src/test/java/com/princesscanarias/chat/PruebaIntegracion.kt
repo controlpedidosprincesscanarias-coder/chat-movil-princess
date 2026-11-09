@@ -82,10 +82,24 @@ class PruebaIntegracion {
             assertTrue(historial.any { it.contenido == "Hola desde el PC 👍" })
             assertTrue(historial.any { it.contenido == "Respondo desde el móvil 👌 Perfecto" })
 
+            // (v1.0.4) Fotos de perfil: la mía, la que ven los demás y el aviso en tiempo real
+            val avisos = CopyOnWriteArrayList<JSONObject>()
+            sEscritorio.on("avatar_cambiado") { a -> (a.firstOrNull() as? JSONObject)?.let { avisos.add(it) } }
+            val jpeg = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xE0.toByte()) + ByteArray(400) { 7 }
+            val url = movil.cambiarAvatar(jpeg)
+            assertTrue("la foto se guarda y devuelve su dirección", url != null && url.contains("/avatares/"))
+            assertEquals(url, movil.miAvatar())
+            assertEquals("el compañero la ve en la lista de usuarios", url, companero.usuarios().first { it.username == "compras prueba" }.avatar)
+            assertTrue("el Organizador del mismo usuario recibe el aviso", esperar { avisos.any { it.optString("clave") == "user:compras prueba" } })
+            assertEquals("y en el privado sale la foto del compañero", url, companero.canales().first { it.id == m.canalId }.avatar)
+            assertEquals(null, movil.cambiarAvatar(null))
+
             // Grupo creado desde el móvil
             val grupo = movil.crearGrupo("Grupo de prueba", listOf("admin prueba", "hotel prueba"))
             assertTrue(grupo.startsWith("grp:"))
             assertTrue(movil.canales().any { it.id == grupo && it.nombre == "Grupo de prueba" })
+            val urlGrupo = companero.cambiarAvatar(jpeg, grupo)
+            assertEquals("cualquier miembro cambia la foto del grupo", urlGrupo, movil.canales().first { it.id == grupo }.avatar)
         } finally {
             sMovil.disconnect(); sEscritorio.disconnect()
         }

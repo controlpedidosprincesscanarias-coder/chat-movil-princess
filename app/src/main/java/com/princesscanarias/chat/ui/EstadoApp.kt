@@ -168,6 +168,20 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** (v1.0.4) Pone mi foto (canalId null) o la de un grupo. */
+    fun cambiarFoto(uri: android.net.Uri?, canalId: String? = null) {
+        if (uri == null) return
+        aviso.value = "Subiendo la foto…"
+        enSegundoPlano({ chat.cambiarFoto(Fotos.preparar(getApplication(), uri), canalId) }) {
+            aviso.value = "Foto actualizada"
+            if (canalId != null) cargarCanales()
+        }
+    }
+
+    fun quitarMiFoto() = enSegundoPlano({ chat.cambiarFoto(null) }) { aviso.value = "Foto quitada" }
+
+    fun canal(canalId: String?): Canal? = canales.firstOrNull { it.id == canalId }
+
     fun cargarUsuarios() = enSegundoPlano({ chat.api.usuarios() }) { usuarios.clear(); usuarios.addAll(it) }
 
     fun crearGrupo(nombre: String, miembros: List<String>) =

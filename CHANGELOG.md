@@ -1,3 +1,12 @@
+# v1.0.4
+
+- **Fotos de perfil** (necesita el servicio del chat v1.3.0):
+  - **Dónde se ven:** en la lista de conversaciones, en la cabecera de cada chat, junto a los mensajes de los grupos y del General, y al elegir compañeros.
+  - **Sin foto:** quien no tenga sale con sus iniciales sobre un color fijo; los grupos sin foto, con un icono de grupo.
+  - **Tu foto:** se pone desde Ajustes → «Mi foto», con la galería o la cámara (se recorta en cuadrado y se reduce sola), y desde ahí se quita.
+  - **Foto del grupo:** dentro del grupo, con el botón 📷 de arriba. Cualquier miembro puede cambiarla.
+  - **Mismo chat en todas partes:** son las mismas fotos que en el Organizador, y los cambios se ven al momento.
+
 # v1.0.2
 
 - **Nuevo nombre:** «Chat Dpto. Compras Princess» (antes «Chat Princess»), en el icono, la cabecera, la pantalla de acceso y las notificaciones. El archivo de instalación se sigue llamando `ChatPrincess_<versión>.apk`.

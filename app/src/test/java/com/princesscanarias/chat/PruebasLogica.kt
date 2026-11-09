@@ -59,6 +59,16 @@ class PruebasLogica {
         assertEquals(32, Emoticonos.lista.size)
     }
 
+    @Test fun fotosDePerfil() {
+        val c = Canal.deJson(JSONObject("""{"canal_id":"grp:x","tipo":"grupo","nombre":"Compras","avatar":"https://a.supabase.co/f.jpg","no_leidos":0}"""))
+        assertEquals("https://a.supabase.co/f.jpg", c.avatar)
+        assertNull(Canal.deJson(JSONObject("""{"canal_id":"general","tipo":"general","avatar":null,"no_leidos":0}""")).avatar)
+        assertEquals("AD", com.princesscanarias.chat.ui.Fotos.iniciales("Ana Demo"))
+        assertEquals("C", com.princesscanarias.chat.ui.Fotos.iniciales("compras"))
+        assertEquals("?", com.princesscanarias.chat.ui.Fotos.iniciales("  "))
+        assertEquals(com.princesscanarias.chat.ui.Fotos.color("Ana"), com.princesscanarias.chat.ui.Fotos.color("ana"))
+    }
+
     @Test fun fechasCortas() {
         val hoy = LocalDate.now()
         assertTrue(Fechas.corta(java.time.OffsetDateTime.now().toString(), hoy).matches(Regex("\\d\\d:\\d\\d")))

@@ -2,7 +2,7 @@
 
 > **Autoría:** la idea y el desarrollo de la aplicación, incluidas sus pruebas, son de **Víctor Alejandro Martín Andrade**, para el Departamento de Central de Compras de Princess Hotels en Canarias. Ver `AUTORIA.md`.
 
-**Versión actual: v1.0.2**
+**Versión actual: v1.0.4**
 
 El chat de Control de Pedidos en el móvil. Es el mismo chat que el del Organizador de escritorio: las mismas conversaciones, el mismo servidor y la misma cuenta. Se puede estar conectado a la vez en el PC y en el móvil.
 
