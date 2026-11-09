@@ -8,7 +8,7 @@ El chat de Control de Pedidos en el móvil. Es el mismo chat que el del Organiza
 
 ## Para quien la usa
 
-1. **Instalar.** Descarga `ChatPrincess_<versión>.apk` de la última Release de este repositorio y ábrela en el móvil.
+1. **Instalar.** Descarga `ChatPrincess_<versión>.apk` de la última Release de este repositorio y ábrela en el móvil. Desde el Organizador (v4.18.24), el botón **📱 Chat en el móvil** del chat muestra un código QR que lleva a esa página, y el capítulo 8 de su Manual de usuario lo explica paso a paso.
    - La primera vez, Android pide permitir «Instalar apps desconocidas» al navegador o a la app de archivos.
    - Necesita Android 8 o posterior.
 2. **Entrar** con el usuario y la contraseña de **Control de Pedidos**.
