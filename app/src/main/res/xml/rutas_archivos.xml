@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <cache-path name="adjuntos" path="adjuntos/" />
+    <cache-path name="fotos" path="fotos/" />
+    <cache-path name="actualizaciones" path="actualizaciones/" />
+</paths>
