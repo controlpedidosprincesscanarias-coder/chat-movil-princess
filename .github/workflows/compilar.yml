@@ -79,7 +79,9 @@ jobs:
           ./gradlew --no-daemon testDebugUnitTest lintRelease assembleRelease
           mkdir -p salida
           cp app/build/outputs/apk/release/app-release.apk "salida/${{ steps.version.outputs.apk }}"
-          "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs "salida/${{ steps.version.outputs.apk }}" | head -3
+          # Hay varias versiones de build-tools en el servidor de GitHub: se usa la más reciente
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
+          "$apksigner" verify --print-certs "salida/${{ steps.version.outputs.apk }}" | head -3
           (cd salida && sha256sum "${{ steps.version.outputs.apk }}" > "${{ steps.version.outputs.apk }}.sha256" && cat *.sha256)
           rm -f "$RUNNER_TEMP/firma.jks"
 
