@@ -1,3 +1,12 @@
+# v1.0.10
+
+- **Grupos:** toca la foto o el nombre de un grupo (arriba) para ver quién está en él, con su foto, y quién lo gestiona.
+  - **Quien creó el grupo** puede **➕ Añadir** compañeros, quitarlos (icono junto a cada uno), **✏ Renombrarlo** y **🗑 Eliminarlo** con todos sus mensajes.
+  - **Cualquier miembro** puede **🚪 Salir del grupo**.
+  - En los grupos de antes de esta versión no consta quién los creó: puede gestionarlos cualquier miembro, y el primero que lo hace queda como gestor.
+  - Cada cambio queda anotado dentro del grupo («👥 Ana ha añadido a Carla»). Si te quitan o se elimina el grupo, se cierra solo.
+- Necesita el servicio del chat v1.5.0.
+
 # v1.0.8
 
 - **Mantén pulsado un mensaje** y ahora también puedes:

@@ -5,6 +5,7 @@ package com.princesscanarias.chat
 import com.princesscanarias.chat.datos.Canal
 import com.princesscanarias.chat.datos.Fechas
 import com.princesscanarias.chat.datos.Mensaje
+import com.princesscanarias.chat.datos.DetalleGrupo
 import com.princesscanarias.chat.datos.Notas
 import com.princesscanarias.chat.datos.Reenvio
 import com.princesscanarias.chat.datos.Usuario
@@ -127,5 +128,17 @@ class PruebasLogica {
         assertEquals(listOf("general", "grp:1", "dm:ana:beto", null), d.map { it.canalId })
         assertEquals("carla", d.last().destinatario)
         assertEquals("👤  Beto Pérez", d[2].etiqueta)
+    }
+
+    // (v1.0.10, chat v1.5.0) Integrantes y candidatos para añadir a un grupo
+    @Test fun detalleDeGrupo() {
+        val d = DetalleGrupo.deJson(JSONObject("""{"canal_id":"grp:1","nombre":"Pescado","creado_por":"ana",
+            "avatar":null,"puede_gestionar":true,"miembros":[{"username":"ana","nombre":"Ana","avatar":null,"es_creador":true},
+            {"username":"beto","nombre":"Beto","avatar":"https://abc.supabase.co/b.jpg","es_creador":false}]}"""))
+        assertTrue(d.puedeGestionar); assertEquals("ana", d.creadoPor); assertEquals(2, d.miembros.size)
+        assertTrue(d.miembros[0].esCreador); assertNull(d.avatar)
+        val c = d.candidatos(listOf(Usuario("Beto", "Beto", null), Usuario("dani", "Ángel", null), Usuario("carla", "carla", null)))
+        assertEquals(listOf("carla", "dani"), c.map { it.username })
+        assertFalse(DetalleGrupo.deJson(JSONObject("""{"canal_id":"grp:2"}""")).puedeGestionar)
     }
 }

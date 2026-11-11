@@ -56,6 +56,7 @@ import com.princesscanarias.chat.R
 import com.princesscanarias.chat.datos.EstadoConexion
 import com.princesscanarias.chat.datos.Fechas
 import com.princesscanarias.chat.datos.Mensaje
+import com.princesscanarias.chat.datos.DetalleGrupo
 import com.princesscanarias.chat.datos.Notas
 import com.princesscanarias.chat.datos.Reenvio
 import com.princesscanarias.chat.datos.Seguridad
@@ -93,10 +94,13 @@ fun AppChat(e: EstadoApp) {
 @Composable
 private fun Cabecera(titulo: String, subtitulo: String? = null, atras: (() -> Unit)? = null, corona: Boolean = false,
                      tituloPequeno: Boolean = false, avatar: (@Composable () -> Unit)? = null,
+                     alPulsar: (() -> Unit)? = null,
                      acciones: @Composable RowScope.() -> Unit = {}) {
     TopAppBar(
         title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // (v1.0.10) En los grupos, pulsar la foto o el nombre abre sus integrantes
+            Row(verticalAlignment = Alignment.CenterVertically,
+                modifier = if (alPulsar != null) Modifier.clickable { alPulsar() } else Modifier) {
                 if (avatar != null) { avatar(); Spacer(Modifier.width(10.dp)) }
                 if (corona) {   // la corona de Princess en la pantalla principal
                     Image(painterResource(R.drawable.corona_blanca), contentDescription = "Princess",
@@ -273,13 +277,18 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
             avatar = if (p.canalId == "general") null else {
                 { Avatar(if (esGrupo) canal?.avatar else canal?.avatar ?: e.chat.fotoDe(canal?.otroUsuario ?: p.destinatario), p.titulo, 36.dp,
                     icono = if (esGrupo) IconoGrupo else null) }
-            }) {
+            }, alPulsar = if (esGrupo) ({ e.verGrupo(p.canalId!!) }) else null) {
             if (esGrupo) IconButton({ fotoGrupo.launch("image/*") }) { Icon(Icons.Default.AddAPhoto, "Cambiar la foto del grupo") }
         }
         if (e.cargando.value && e.mensajes.isEmpty()) LinearProgressIndicator(Modifier.fillMaxWidth(), color = Colores.dorado)
         LazyColumn(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 10.dp), state = lista,
             contentPadding = PaddingValues(vertical = 8.dp)) {
             items(e.mensajes, key = { it.id ?: it.hashCode().toLong() }) { m ->
+                if (m.tipo == "sistema") {     // (v1.0.10) «👥 Ana ha añadido a Carla»
+                    Text("${m.contenido}  ·  ${Fechas.corta(m.creadoEn)}", fontSize = 12.sp, color = Colores.meta,
+                        textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp))
+                    return@items
+                }
                 Burbuja(m, propio = m.remitente.equals(e.chat.username, true), quien = e.chat.nombreDe(m.remitente),
                     mostrarNombre = !p.canalId.orEmpty().startsWith("dm:"), foto = e.chat.fotoDe(m.remitente), acciones = acciones)
             }
@@ -318,6 +327,7 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
             }
         }
     }
+    e.detalleGrupo.value?.let { d -> InfoGrupo(e, d) }
     // (v1.0.8) «Reenviar a…»: conversaciones que ya existen y compañeros sin privado
     reenviarEste?.let { m ->
         val destinos = remember(e.canales.size, e.usuarios.size) {
@@ -349,6 +359,96 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
             text = { Text("${a.nombre}  (${a.datos.size / 1024} KB)") },
             confirmButton = { TextButton({ pendiente = null; e.enviarArchivo(a) }) { Text("Enviar") } },
             dismissButton = { TextButton({ pendiente = null }) { Text("Cancelar") } })
+    }
+}
+
+/** (v1.0.10) Integrantes del grupo y, para quien lo creó, añadir, quitar, renombrar y eliminar. */
+@Composable
+private fun InfoGrupo(e: EstadoApp, d: DetalleGrupo) {
+    var anadir by remember { mutableStateOf(false) }
+    var renombrar by remember { mutableStateOf(false) }
+    var confirmar by remember { mutableStateOf<String?>(null) }    // "salir" | "eliminar" | "quitar:<usuario>"
+    AlertDialog(onDismissRequest = { e.detalleGrupo.value = null },
+        title = { Text(d.nombre) },
+        text = {
+            Column {
+                Text("${d.miembros.size} integrantes", color = Colores.meta, fontSize = 13.sp)
+                LazyColumn(Modifier.heightIn(max = 320.dp).padding(top = 8.dp)) {
+                    items(d.miembros) { m ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Avatar(m.avatar, m.nombre, 36.dp)
+                            Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                                Text(m.nombre + if (m.username.equals(e.chat.username, true)) " (tú)" else "", color = Colores.texto)
+                                if (m.esCreador) Text("Gestiona el grupo", fontSize = 11.sp, color = Colores.dorado)
+                            }
+                            if (d.puedeGestionar && !m.username.equals(e.chat.username, true))
+                                IconButton({ confirmar = "quitar:${m.username}" }) {
+                                    Icon(Icons.Default.PersonRemove, "Quitar a ${m.nombre}", tint = Colores.meta)
+                                }
+                        }
+                    }
+                }
+                if (d.puedeGestionar) Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 6.dp)) {
+                    OutlinedButton({ anadir = true }) { Text("➕ Añadir") }
+                    OutlinedButton({ renombrar = true }) { Text("✏ Renombrar") }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 6.dp)) {
+                    TextButton({ confirmar = "salir" }) { Text("🚪 Salir del grupo", color = Colores.error) }
+                    if (d.puedeGestionar) TextButton({ confirmar = "eliminar" }) { Text("🗑 Eliminar", color = Colores.error) }
+                }
+            }
+        },
+        confirmButton = { TextButton({ e.detalleGrupo.value = null }) { Text("Cerrar") } })
+
+    if (anadir) {
+        val opciones = remember(e.usuarios.size, d.miembros.size) { d.candidatos(e.usuarios) }
+        val elegidos = remember { mutableStateListOf<String>() }
+        AlertDialog(onDismissRequest = { anadir = false },
+            title = { Text("Añadir al grupo") },
+            text = {
+                if (opciones.isEmpty()) Text("Todos los compañeros están ya en el grupo.", color = Colores.meta)
+                else LazyColumn(Modifier.heightIn(max = 380.dp)) {
+                    items(opciones) { u ->
+                        Row(Modifier.fillMaxWidth().clickable {
+                            if (u.username in elegidos) elegidos.remove(u.username) else elegidos.add(u.username)
+                        }, verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(u.username in elegidos, { v -> if (v) elegidos.add(u.username) else elegidos.remove(u.username) })
+                            Text(u.nombre, color = Colores.texto)
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton({ anadir = false; if (elegidos.isNotEmpty()) e.anadirAlGrupo(d.canalId, elegidos.toList()) },
+                enabled = elegidos.isNotEmpty()) { Text("Añadir") } },
+            dismissButton = { TextButton({ anadir = false }) { Text("Cancelar") } })
+    }
+    if (renombrar) {
+        var nombre by remember { mutableStateOf(d.nombre) }
+        AlertDialog(onDismissRequest = { renombrar = false },
+            title = { Text("Renombrar el grupo") },
+            text = { OutlinedTextField(nombre, { nombre = it }, singleLine = true, label = { Text("Nombre") }) },
+            confirmButton = { TextButton({ renombrar = false; e.renombrarGrupo(d.canalId, nombre.trim()) },
+                enabled = nombre.isNotBlank()) { Text("Guardar") } },
+            dismissButton = { TextButton({ renombrar = false }) { Text("Cancelar") } })
+    }
+    confirmar?.let { accion ->
+        val quien = accion.removePrefix("quitar:")
+        val (titulo, texto) = when {
+            accion == "salir" -> "¿Salir del grupo?" to "Dejarás de ver sus mensajes."
+            accion == "eliminar" -> "¿Eliminar el grupo?" to "Se elimina para todos, con todos sus mensajes y archivos. No se puede deshacer."
+            else -> "¿Quitar del grupo?" to "${d.miembros.firstOrNull { it.username == quien }?.nombre ?: quien} dejará de ver el grupo."
+        }
+        AlertDialog(onDismissRequest = { confirmar = null },
+            title = { Text(titulo) }, text = { Text(texto) },
+            confirmButton = { TextButton({
+                confirmar = null
+                when (accion) {
+                    "salir" -> e.salirDelGrupo(d.canalId)
+                    "eliminar" -> e.eliminarGrupo(d.canalId)
+                    else -> e.quitarDelGrupo(d.canalId, quien)
+                }
+            }) { Text("Sí", color = Colores.error) } },
+            dismissButton = { TextButton({ confirmar = null }) { Text("Cancelar") } })
     }
 }
 

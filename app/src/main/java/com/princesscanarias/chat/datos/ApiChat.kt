@@ -113,6 +113,20 @@ class ApiChat(
         return Mensaje.deJson(d.getJSONObject("mensaje"))
     }
 
+    // ── (v1.0.10) Gestión de grupos (chat v1.5.0) ──────────────────────────────
+    fun detalleGrupo(canalId: String): DetalleGrupo = DetalleGrupo.deJson(peticion("/api/chat/grupos/$canalId"))
+
+    fun miembrosGrupo(canalId: String, anadir: List<String> = emptyList(), quitar: List<String> = emptyList()): DetalleGrupo =
+        DetalleGrupo.deJson(peticion("/api/chat/grupos/$canalId/miembros", "POST",
+            JSONObject().put("anadir", JSONArray(anadir)).put("quitar", JSONArray(quitar))))
+
+    fun renombrarGrupo(canalId: String, nombre: String): DetalleGrupo =
+        DetalleGrupo.deJson(peticion("/api/chat/grupos/$canalId/nombre", "POST", JSONObject().put("nombre", nombre)))
+
+    fun salirGrupo(canalId: String) { peticion("/api/chat/grupos/$canalId/salir", "POST", JSONObject()) }
+
+    fun eliminarGrupo(canalId: String) { peticion("/api/chat/grupos/$canalId/eliminar", "POST", JSONObject()) }
+
     /** (v1.0.8) Elimina un mensaje propio (chat v1.4.0): queda «🚫 Mensaje eliminado» para todos. */
     fun eliminar(mensajeId: Long) {
         peticion("/api/chat/mensajes/$mensajeId/eliminar", "POST", JSONObject())
