@@ -11,6 +11,8 @@ import com.princesscanarias.chat.BuildConfig
 import com.princesscanarias.chat.datos.Actualizaciones
 import com.princesscanarias.chat.datos.Canal
 import com.princesscanarias.chat.datos.Chat
+import com.princesscanarias.chat.datos.DetalleGrupo
+import com.princesscanarias.chat.datos.ErrorChat
 import com.princesscanarias.chat.datos.Mensaje
 import com.princesscanarias.chat.datos.Usuario
 import com.princesscanarias.chat.datos.VersionNueva
@@ -42,6 +44,8 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
     val actualizacion = mutableStateOf<VersionNueva?>(null)
     /** (v1.0.8) Mensaje al que se está respondiendo (barra «Respondiendo a…» encima de la caja de escribir). */
     val respondiendo = mutableStateOf<Mensaje?>(null)
+    /** (v1.0.10) Integrantes del grupo abierto, si se ha pulsado su cabecera (null = cerrado). */
+    val detalleGrupo = mutableStateOf<DetalleGrupo?>(null)
     private var canalAbierto: String? = null
     private var buscadaActualizacion = false
     private var refresco: Job? = null
@@ -57,6 +61,16 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
             }
         }
         viewModelScope.launch { chat.errores.collect { aviso.value = it } }
+        // (v1.0.10) Un grupo ha cambiado: si es el abierto y se ha eliminado o ya no soy miembro, a la lista
+        viewModelScope.launch {
+            chat.grupos.collect { (canal, eliminado) ->
+                if (canal == canalAbierto) {
+                    if (eliminado) { cerrarConversacion(); aviso.value = "El grupo se ha eliminado" }
+                    else comprobarGrupo(canal)
+                }
+                refrescarListaPronto()
+            }
+        }
         // (v1.0.8) Un mensaje eliminado (por su autor, desde el móvil o el Organizador)
         viewModelScope.launch {
             chat.eliminados.collect { (id, canal) ->
@@ -145,6 +159,7 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
 
     fun cerrarConversacion() {
         respondiendo.value = null
+        detalleGrupo.value = null
         canalAbierto = null
         chat.canalVisible = null
         mensajes.clear()
@@ -162,6 +177,49 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
         val citado = respondiendo.value?.id
         respondiendo.value = null
         enSegundoPlano({ chat.api.enviarMensaje(canal, p.destinatario, texto, citado) }) { anadirSiFalta(it) }
+    }
+
+    // ── (v1.0.10) Gestión de grupos ───────────────────────────────────────────
+    private fun comprobarGrupo(canal: String) {
+        viewModelScope.launch {
+            try {
+                val d = withContext(Dispatchers.IO) { chat.api.detalleGrupo(canal) }
+                if (detalleGrupo.value != null) detalleGrupo.value = d
+                val p = pantalla.value as? Pantalla.Conversacion
+                if (p != null && p.canalId == canal && p.titulo != d.nombre) pantalla.value = p.copy(titulo = d.nombre)
+            } catch (e: ErrorChat) {
+                if (e.codigo == 404 && canal == canalAbierto) { cerrarConversacion(); aviso.value = "Ya no estás en ese grupo" }
+            } catch (e: Exception) { /* sin red: se verá al volver */ }
+        }
+    }
+
+    fun verGrupo(canal: String) {
+        cargarUsuarios()
+        enSegundoPlano({ chat.api.detalleGrupo(canal) }) { detalleGrupo.value = it }
+    }
+
+    private fun trasCambiarGrupo(d: DetalleGrupo) {
+        detalleGrupo.value = d
+        val p = pantalla.value as? Pantalla.Conversacion
+        if (p != null && p.canalId == d.canalId) pantalla.value = p.copy(titulo = d.nombre)
+        refrescarListaPronto()
+    }
+
+    fun anadirAlGrupo(canal: String, usuarios: List<String>) =
+        enSegundoPlano({ chat.api.miembrosGrupo(canal, anadir = usuarios) }) { trasCambiarGrupo(it) }
+
+    fun quitarDelGrupo(canal: String, usuario: String) =
+        enSegundoPlano({ chat.api.miembrosGrupo(canal, quitar = listOf(usuario)) }) { trasCambiarGrupo(it) }
+
+    fun renombrarGrupo(canal: String, nombre: String) =
+        enSegundoPlano({ chat.api.renombrarGrupo(canal, nombre) }) { trasCambiarGrupo(it) }
+
+    fun salirDelGrupo(canal: String) = enSegundoPlano({ chat.api.salirGrupo(canal) }) {
+        detalleGrupo.value = null; cerrarConversacion(); aviso.value = "Has salido del grupo"
+    }
+
+    fun eliminarGrupo(canal: String) = enSegundoPlano({ chat.api.eliminarGrupo(canal) }) {
+        detalleGrupo.value = null; cerrarConversacion(); aviso.value = "Grupo eliminado"
     }
 
     /** (v1.0.8) Pone un mensaje de la lista como eliminado (al eliminarlo yo o al llegar el aviso). */

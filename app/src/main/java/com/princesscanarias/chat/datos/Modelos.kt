@@ -91,6 +91,33 @@ data class Canal(
 
 data class Usuario(val username: String, val nombre: String, val rol: String?, val avatar: String? = null)
 
+/** (v1.0.10, chat v1.5.0) Un integrante de un grupo. */
+data class Integrante(val username: String, val nombre: String, val avatar: String?, val esCreador: Boolean)
+
+/** (v1.0.10, chat v1.5.0) Integrantes de un grupo y si puedo gestionarlo (quien lo creó; decisión de Víctor). */
+data class DetalleGrupo(val canalId: String, val nombre: String, val creadoPor: String?, val avatar: String?,
+                        val puedeGestionar: Boolean, val miembros: List<Integrante>) {
+    /** Compañeros que se pueden añadir: los que no están ya, por nombre. */
+    fun candidatos(usuarios: List<Usuario>): List<Usuario> {
+        val dentro = miembros.map { it.username.lowercase() }.toSet()
+        return usuarios.filter { it.username.lowercase() !in dentro }.sortedBy { it.nombre.lowercase() }
+    }
+
+    companion object {
+        fun deJson(o: JSONObject): DetalleGrupo {
+            val lista = o.optJSONArray("miembros")
+            val miembros = (0 until (lista?.length() ?: 0)).mapNotNull { i ->
+                lista?.optJSONObject(i)?.let {
+                    Integrante(it.texto("username") ?: "", it.texto("nombre") ?: it.texto("username") ?: "",
+                        it.texto("avatar"), it.optBoolean("es_creador", false))
+                }
+            }
+            return DetalleGrupo(o.texto("canal_id") ?: "", o.texto("nombre") ?: "Grupo", o.texto("creado_por"),
+                o.texto("avatar"), o.optBoolean("puede_gestionar", false), miembros)
+        }
+    }
+}
+
 /** Formatos de fecha y hora de las burbujas (hora local del móvil). */
 object Fechas {
     private val hora = DateTimeFormatter.ofPattern("HH:mm")

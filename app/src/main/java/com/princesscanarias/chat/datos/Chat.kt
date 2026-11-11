@@ -39,6 +39,9 @@ class Chat(context: Context) {
     private val _eliminados = MutableSharedFlow<Pair<Long, String>>(extraBufferCapacity = 32)
     /** (v1.0.8) Mensajes eliminados en tiempo real: (id, canal). */
     val eliminados: SharedFlow<Pair<Long, String>> = _eliminados
+    private val _grupos = MutableSharedFlow<Pair<String, Boolean>>(extraBufferCapacity = 16)
+    /** (v1.0.10) Un grupo ha cambiado: (canal, eliminado). */
+    val grupos: SharedFlow<Pair<String, Boolean>> = _grupos
     private val _errores = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val errores: SharedFlow<String> = _errores
 
@@ -158,6 +161,11 @@ class Chat(context: Context) {
         s.on("mensaje_eliminado") { args ->
             (args.firstOrNull() as? JSONObject)?.let { o ->
                 if (o.has("id")) _eliminados.tryEmit(o.optLong("id") to (o.texto("canal_id") ?: ""))
+            }
+        }
+        s.on("grupo_cambiado") { args ->
+            (args.firstOrNull() as? JSONObject)?.let { o ->
+                o.texto("canal_id")?.let { _grupos.tryEmit(it to o.optBoolean("eliminado", false)) }
             }
         }
         s.on("error_chat") { args ->
