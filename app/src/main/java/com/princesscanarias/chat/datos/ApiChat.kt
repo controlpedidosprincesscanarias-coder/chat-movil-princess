@@ -105,11 +105,23 @@ class ApiChat(
         return canal to d.optJSONArray("mensajes").lista { Mensaje.deJson(it, canal) }
     }
 
-    fun enviarMensaje(canalId: String?, destinatario: String?, contenido: String): Mensaje {
+    fun enviarMensaje(canalId: String?, destinatario: String?, contenido: String, respondeA: Long? = null): Mensaje {
         val cuerpo = JSONObject().put("contenido", contenido)
         if (!canalId.isNullOrBlank()) cuerpo.put("canal_id", canalId) else cuerpo.put("destinatario", destinatario)
+        if (respondeA != null) cuerpo.put("responde_a", respondeA)      // (v1.0.8) responder citando
         val d = peticion("/api/chat/mensajes", "POST", cuerpo)
         return Mensaje.deJson(d.getJSONObject("mensaje"))
+    }
+
+    /** (v1.0.8) Elimina un mensaje propio (chat v1.4.0): queda «🚫 Mensaje eliminado» para todos. */
+    fun eliminar(mensajeId: Long) {
+        peticion("/api/chat/mensajes/$mensajeId/eliminar", "POST", JSONObject())
+    }
+
+    /** (v1.0.8) Reenvía un mensaje (texto o adjunto) a una conversación o a un compañero (chat v1.4.0). */
+    fun reenviar(mensajeId: Long, canalId: String?, destinatario: String?): Mensaje {
+        val cuerpo = if (!canalId.isNullOrBlank()) JSONObject().put("canal_id", canalId) else JSONObject().put("destinatario", destinatario)
+        return Mensaje.deJson(peticion("/api/chat/mensajes/$mensajeId/reenviar", "POST", cuerpo).getJSONObject("mensaje"))
     }
 
     fun enviarArchivo(canalId: String, nombreArchivo: String, mime: String, datos: ByteArray): Mensaje {

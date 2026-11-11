@@ -14,6 +14,9 @@ fun JSONObject.texto(clave: String): String? =
 
 data class Adjunto(val url: String, val nombre: String, val mime: String?, val tamano: Long?)
 
+/** (v1.0.8, chat v1.4.0) El mensaje al que responde otro: quién, qué (recortado por el servidor) y de qué tipo. */
+data class Cita(val id: Long, val remitente: String, val contenido: String, val tipo: String?)
+
 data class Mensaje(
     val id: Long?,
     val canalId: String,
@@ -22,7 +25,12 @@ data class Mensaje(
     val creadoEn: String,
     val tipo: String?,
     val adjunto: Adjunto?,
+    val respondeA: Cita? = null,      // (v1.0.8) responder citando
+    val reenviado: Boolean = false,   // (v1.0.8) copia reenviada
 ) {
+    /** (v1.0.8) Lo eliminó su autor: se ve «🚫 Mensaje eliminado», sin menú. */
+    val eliminado: Boolean get() = tipo == "eliminado"
+
     /** (v1.0.6) Imagen adjunta: se ve en miniatura en la conversación en vez de solo su nombre. */
     val esImagen: Boolean
         get() {
@@ -47,6 +55,11 @@ data class Mensaje(
                 creadoEn = o.texto("creado_en") ?: "",
                 tipo = o.texto("tipo"),
                 adjunto = adj,
+                respondeA = o.optJSONObject("responde_a")?.let {
+                    if (!it.has("id") || it.isNull("id")) null
+                    else Cita(it.optLong("id"), it.texto("remitente") ?: "", it.texto("contenido") ?: "", it.texto("tipo"))
+                },
+                reenviado = o.optBoolean("reenviado", false),
             )
         }
     }

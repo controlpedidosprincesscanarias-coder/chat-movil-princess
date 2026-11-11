@@ -6,6 +6,8 @@ import com.princesscanarias.chat.datos.Canal
 import com.princesscanarias.chat.datos.Fechas
 import com.princesscanarias.chat.datos.Mensaje
 import com.princesscanarias.chat.datos.Notas
+import com.princesscanarias.chat.datos.Reenvio
+import com.princesscanarias.chat.datos.Usuario
 import com.princesscanarias.chat.datos.Seguridad
 import com.princesscanarias.chat.ui.Emoticonos
 import org.json.JSONObject
@@ -101,5 +103,29 @@ class PruebasLogica {
         assertFalse(m("archivo", "factura.pdf").esImagen)
         assertFalse(m("imagen", "x.jpg", url = "").esImagen)
         assertFalse(Mensaje(1, "general", "a", "hola", "", "texto", null).esImagen)
+    }
+
+    // (v1.0.8, chat v1.4.0) Responder citando, reenviado y eliminado
+    @Test fun respuestaReenvioYEliminado() {
+        val r = Mensaje.deJson(JSONObject("""{"id":8,"canal_id":"grp:1","remitente":"beto","contenido":"Yo lo pido",
+            "creado_en":"2026-11-11T18:00:00+00:00","tipo":"texto","adjunto":null,"reenviado":true,
+            "responde_a":{"id":3,"remitente":"ana","contenido":"¿Quién pide?","tipo":"texto"}}"""))
+        assertEquals(3L, r.respondeA?.id); assertEquals("ana", r.respondeA?.remitente); assertTrue(r.reenviado)
+        val antiguo = Mensaje.deJson(JSONObject("""{"id":9,"canal_id":"general","remitente":"a","contenido":"hola","creado_en":""}"""))
+        assertNull(antiguo.respondeA); assertFalse(antiguo.reenviado); assertFalse(antiguo.eliminado)
+        assertTrue(Mensaje.deJson(JSONObject("""{"id":10,"canal_id":"general","remitente":"a","contenido":"x","tipo":"eliminado"}""")).eliminado)
+        assertNull(Mensaje.deJson(JSONObject("""{"id":11,"canal_id":"general","remitente":"a","contenido":"x","responde_a":null}""")).respondeA)
+    }
+
+    @Test fun destinosParaReenviar() {
+        val canales = listOf(
+            Canal.deJson(JSONObject("""{"canal_id":"general","tipo":"general"}""")),
+            Canal.deJson(JSONObject("""{"canal_id":"grp:1","tipo":"grupo","nombre":"Compras"}""")),
+            Canal.deJson(JSONObject("""{"canal_id":"dm:ana:beto","tipo":"privado","otro_usuario":"beto"}""")))
+        val usuarios = listOf(Usuario("ana", "Ana", null), Usuario("beto", "Beto", null), Usuario("carla", "Carla", null))
+        val d = Reenvio.destinos(canales, usuarios, "ana") { if (it == "beto") "Beto Pérez" else it }
+        assertEquals(listOf("general", "grp:1", "dm:ana:beto", null), d.map { it.canalId })
+        assertEquals("carla", d.last().destinatario)
+        assertEquals("👤  Beto Pérez", d[2].etiqueta)
     }
 }

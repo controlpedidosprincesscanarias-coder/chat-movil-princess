@@ -40,6 +40,8 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
     val cargando = mutableStateOf(false)
     val aviso = mutableStateOf<String?>(null)
     val actualizacion = mutableStateOf<VersionNueva?>(null)
+    /** (v1.0.8) Mensaje al que se está respondiendo (barra «Respondiendo a…» encima de la caja de escribir). */
+    val respondiendo = mutableStateOf<Mensaje?>(null)
     private var canalAbierto: String? = null
     private var buscadaActualizacion = false
     private var refresco: Job? = null
@@ -55,6 +57,13 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
             }
         }
         viewModelScope.launch { chat.errores.collect { aviso.value = it } }
+        // (v1.0.8) Un mensaje eliminado (por su autor, desde el móvil o el Organizador)
+        viewModelScope.launch {
+            chat.eliminados.collect { (id, canal) ->
+                if (canal == canalAbierto) marcarEliminado(id)
+                refrescarListaPronto()
+            }
+        }
     }
 
     fun alVolver() {
@@ -113,6 +122,7 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
 
     fun abrirConversacion(canalId: String?, destinatario: String?, titulo: String) {
         val p = Pantalla.Conversacion(canalId, destinatario, titulo)
+        respondiendo.value = null
         pantalla.value = p
         cargarMensajes(p)
     }
@@ -134,6 +144,7 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
     }
 
     fun cerrarConversacion() {
+        respondiendo.value = null
         canalAbierto = null
         chat.canalVisible = null
         mensajes.clear()
@@ -148,7 +159,32 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
     fun enviar(texto: String) {
         val p = pantalla.value as? Pantalla.Conversacion ?: return
         val canal = canalAbierto ?: p.canalId
-        enSegundoPlano({ chat.api.enviarMensaje(canal, p.destinatario, texto) }) { anadirSiFalta(it) }
+        val citado = respondiendo.value?.id
+        respondiendo.value = null
+        enSegundoPlano({ chat.api.enviarMensaje(canal, p.destinatario, texto, citado) }) { anadirSiFalta(it) }
+    }
+
+    /** (v1.0.8) Pone un mensaje de la lista como eliminado (al eliminarlo yo o al llegar el aviso). */
+    private fun marcarEliminado(id: Long) {
+        val i = mensajes.indexOfFirst { it.id == id }
+        if (i >= 0) mensajes[i] = mensajes[i].copy(contenido = "🚫 Mensaje eliminado", tipo = "eliminado", adjunto = null)
+    }
+
+    /** (v1.0.8) Elimina un mensaje propio para todos. */
+    fun eliminar(m: Mensaje) {
+        val id = m.id ?: return
+        enSegundoPlano({ chat.api.eliminar(id) }) { marcarEliminado(id); refrescarListaPronto() }
+    }
+
+    /** (v1.0.8) Reenvía un mensaje a una conversación o a un compañero. */
+    fun reenviar(m: Mensaje, canalId: String?, destinatario: String?) {
+        val id = m.id ?: return
+        aviso.value = "Reenviando…"
+        enSegundoPlano({ chat.api.reenviar(id, canalId, destinatario) }) { nuevo ->
+            aviso.value = "Mensaje reenviado"
+            if (nuevo.canalId == canalAbierto) anadirSiFalta(nuevo)
+            refrescarListaPronto()
+        }
     }
 
     fun enviarArchivo(a: ArchivoListo) {
