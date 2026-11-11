@@ -13,7 +13,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -33,6 +35,10 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +55,9 @@ import com.princesscanarias.chat.R
 import com.princesscanarias.chat.datos.EstadoConexion
 import com.princesscanarias.chat.datos.Fechas
 import com.princesscanarias.chat.datos.Mensaje
+import com.princesscanarias.chat.datos.Notas
+import com.princesscanarias.chat.datos.Seguridad
+import coil.compose.AsyncImage
 
 @Composable
 fun AppChat(e: EstadoApp) {
@@ -235,6 +244,19 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
         if (ok) preparar(uriFoto, "foto_${System.currentTimeMillis()}.jpg")
     }
 
+    // (v1.0.6) «Guardar en…»: el selector de Android elige dónde (Descargas, Drive…); no hace falta ningún permiso.
+    var guardarEste by remember { mutableStateOf<Mensaje?>(null) }
+    val guardar = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("*/*")) { uri ->
+        guardarEste?.let { e.guardarAdjunto(it, uri) }; guardarEste = null
+    }
+    val portapapeles = LocalClipboardManager.current
+    val acciones = AccionesMensaje(
+        abrir = { e.abrirAdjunto(it) },
+        copiar = { portapapeles.setText(AnnotatedString(it.contenido)); e.aviso.value = "Mensaje copiado" },
+        compartir = { if (it.adjunto != null) e.compartirAdjunto(it) else Archivos.compartirTexto(ctx, it.contenido) },
+        guardar = { guardarEste = it; guardar.launch(Seguridad.nombreSeguro(it.adjunto?.nombre)) },
+    )
+
     LaunchedEffect(e.mensajes.size) { if (e.mensajes.isNotEmpty()) lista.animateScrollToItem(e.mensajes.size - 1) }
 
     Column(Modifier.fillMaxSize().imePadding()) {
@@ -250,7 +272,7 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
             contentPadding = PaddingValues(vertical = 8.dp)) {
             items(e.mensajes, key = { it.id ?: it.hashCode().toLong() }) { m ->
                 Burbuja(m, propio = m.remitente.equals(e.chat.username, true), quien = e.chat.nombreDe(m.remitente),
-                    mostrarNombre = !p.canalId.orEmpty().startsWith("dm:"), foto = e.chat.fotoDe(m.remitente)) { e.abrirAdjunto(m) }
+                    mostrarNombre = !p.canalId.orEmpty().startsWith("dm:"), foto = e.chat.fotoDe(m.remitente), acciones = acciones)
             }
         }
         if (emoticonos) PanelEmoticonos { t -> texto = Emoticonos.anadir(texto, t) }
@@ -283,36 +305,65 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
     }
 }
 
+/** (v1.0.6) Lo que se puede hacer con un mensaje al mantenerlo pulsado. */
+private class AccionesMensaje(
+    val abrir: (Mensaje) -> Unit,
+    val copiar: (Mensaje) -> Unit,
+    val compartir: (Mensaje) -> Unit,
+    val guardar: (Mensaje) -> Unit,
+)
+
 @Composable
-private fun Burbuja(m: Mensaje, propio: Boolean, quien: String, mostrarNombre: Boolean, foto: String? = null, abrirAdjunto: () -> Unit) {
+private fun Burbuja(m: Mensaje, propio: Boolean, quien: String, mostrarNombre: Boolean, foto: String? = null, acciones: AccionesMensaje) {
     // (v1.0.4) En grupos y en el General, la foto de quien escribe a la izquierda
     if (!propio && mostrarNombre) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
             Avatar(foto, quien, 30.dp, modifier = Modifier.padding(end = 6.dp, bottom = 4.dp))
-            Box(Modifier.weight(1f)) { BurbujaSola(m, false, quien, true, abrirAdjunto) }
+            Box(Modifier.weight(1f)) { BurbujaSola(m, false, quien, true, acciones) }
         }
-    } else BurbujaSola(m, propio, quien, mostrarNombre, abrirAdjunto)
+    } else BurbujaSola(m, propio, quien, mostrarNombre, acciones)
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun BurbujaSola(m: Mensaje, propio: Boolean, quien: String, mostrarNombre: Boolean, abrirAdjunto: () -> Unit) {
+private fun BurbujaSola(m: Mensaje, propio: Boolean, quien: String, mostrarNombre: Boolean, acciones: AccionesMensaje) {
+    var menu by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth().padding(vertical = 3.dp), horizontalAlignment = if (propio) Alignment.End else Alignment.Start) {
         if (!propio && mostrarNombre) Text(quien, fontSize = 11.sp, color = Colores.meta, modifier = Modifier.padding(start = 6.dp, bottom = 1.dp))
-        Column(Modifier.widthIn(max = 300.dp)
-            .background(if (propio) Colores.propio else Colores.ajeno, RoundedCornerShape(14.dp))
-            .then(if (m.adjunto != null) Modifier.clickable { abrirAdjunto() } else Modifier)
-            .padding(horizontal = 12.dp, vertical = 8.dp)) {
-            if (m.adjunto != null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(if (m.tipo == "imagen") Icons.Default.Image else Icons.Default.Description, null, tint = Colores.texto)
-                    Spacer(Modifier.width(6.dp))
-                    Text(m.adjunto.nombre, color = Colores.texto, fontWeight = FontWeight.Medium,
-                        style = LocalTextStyle.current.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
+        Box {
+            Column(Modifier.widthIn(max = 300.dp)
+                .background(if (propio) Colores.propio else Colores.ajeno, RoundedCornerShape(14.dp))
+                // (v1.0.6) Un toque abre el adjunto; mantener pulsado abre el menú (copiar, compartir, guardar)
+                .combinedClickable(onClick = { if (m.adjunto != null) acciones.abrir(m) }, onLongClick = { menu = true })
+                .padding(horizontal = 12.dp, vertical = 8.dp)) {
+                if (m.adjunto != null) {
+                    // (v1.0.6) Las imágenes se ven en miniatura (solo del almacén de adjuntos permitido)
+                    if (m.esImagen && Seguridad.urlAdjuntoPermitida(m.adjunto.url)) {
+                        AsyncImage(model = m.adjunto.url, contentDescription = m.adjunto.nombre,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.widthIn(max = 240.dp).heightIn(max = 240.dp)
+                                .clip(RoundedCornerShape(10.dp)).padding(bottom = 4.dp))
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(if (m.esImagen) Icons.Default.Image else Icons.Default.Description, null, tint = Colores.texto)
+                        Spacer(Modifier.width(6.dp))
+                        Text(m.adjunto.nombre, color = Colores.texto, fontWeight = FontWeight.Medium,
+                            style = LocalTextStyle.current.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
+                    }
+                } else {
+                    Text(m.contenido, color = Colores.texto, fontSize = 15.sp)
                 }
-            } else {
-                Text(m.contenido, color = Colores.texto, fontSize = 15.sp)
+                Text(Fechas.corta(m.creadoEn), fontSize = 10.sp, color = Colores.texto.copy(alpha = 0.7f), modifier = Modifier.align(Alignment.End))
             }
-            Text(Fechas.corta(m.creadoEn), fontSize = 10.sp, color = Colores.texto.copy(alpha = 0.7f), modifier = Modifier.align(Alignment.End))
+            DropdownMenu(menu, { menu = false }) {
+                if (m.adjunto != null) {
+                    DropdownMenuItem({ Text("📂  Abrir") }, { menu = false; acciones.abrir(m) })
+                    DropdownMenuItem({ Text("💾  Guardar en…") }, { menu = false; acciones.guardar(m) })
+                } else {
+                    DropdownMenuItem({ Text("📋  Copiar") }, { menu = false; acciones.copiar(m) })
+                }
+                DropdownMenuItem({ Text("📤  Compartir") }, { menu = false; acciones.compartir(m) })
+            }
         }
     }
 }
@@ -380,6 +431,7 @@ fun PantallaNueva(e: EstadoApp) {
 fun PantallaAjustes(e: EstadoApp) {
     val ctx = LocalContext.current
     var confirmarSalir by remember { mutableStateOf(false) }
+    var verNotas by remember { mutableStateOf(false) }
     BackHandler { e.pantalla.value = Pantalla.Lista }
     val pm = ctx.getSystemService(PowerManager::class.java)
     val sinAhorro = pm?.isIgnoringBatteryOptimizations(ctx.packageName) == true
@@ -414,7 +466,10 @@ fun PantallaAjustes(e: EstadoApp) {
                 ctx.startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + ctx.packageName)))
             }, enabled = !sinAhorro) { Text(if (sinAhorro) "✓ Ahorro de batería desactivado" else "Quitar el ahorro de batería") }
             HorizontalDivider(color = Colores.caja)
-            Text("Versión ${BuildConfig.VERSION_NAME}", color = Colores.texto)
+            // (v1.0.6) Al pulsar la versión se ven sus notas (CHANGELOG.md dentro de la .apk)
+            Text("Versión ${BuildConfig.VERSION_NAME}  ·  ver novedades", color = Colores.dorado,
+                modifier = Modifier.clickable { verNotas = true },
+                style = LocalTextStyle.current.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
             OutlinedButton({ e.buscarActualizacion(forzar = true) }) { Text("Buscar actualización") }
             HorizontalDivider(color = Colores.caja)
             Button({ confirmarSalir = true }, colors = ButtonDefaults.buttonColors(containerColor = Colores.error)) { Text("Cerrar sesión") }
@@ -422,6 +477,17 @@ fun PantallaAjustes(e: EstadoApp) {
             Text("Idea y desarrollo de la aplicación: Víctor Alejandro Martín Andrade, para el Departamento de Central de Compras de Princess Hotels en Canarias.",
                 fontSize = 11.sp, color = Colores.meta)
         }
+    }
+    if (verNotas) {
+        val notas = remember {
+            val md = try { ctx.assets.open("CHANGELOG.md").bufferedReader().use { it.readText() } } catch (ex: Exception) { "" }
+            Notas.de(BuildConfig.VERSION_NAME, md)?.let { Notas.legible(it) }
+                ?: "No se han encontrado las notas de esta versión."
+        }
+        AlertDialog(onDismissRequest = { verNotas = false },
+            title = { Text("Novedades de la versión ${BuildConfig.VERSION_NAME}") },
+            text = { Text(notas, modifier = Modifier.verticalScroll(rememberScrollState())) },
+            confirmButton = { TextButton({ verNotas = false }) { Text("Cerrar") } })
     }
     if (confirmarSalir) AlertDialog(onDismissRequest = { confirmarSalir = false },
         title = { Text("Cerrar sesión") },

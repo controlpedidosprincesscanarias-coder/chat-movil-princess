@@ -83,6 +83,11 @@ jobs:
           apksigner="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
           "$apksigner" verify --print-certs "salida/${{ steps.version.outputs.apk }}" | head -3
           (cd salida && sha256sum "${{ steps.version.outputs.apk }}" > "${{ steps.version.outputs.apk }}.sha256" && cat *.sha256)
+          # (v1.0.6) Copia idéntica con nombre fijo: el QR del Organizador la descarga directamente con
+          # releases/latest/download/ChatPrincess.apk. Son los mismos bytes, así que vale el mismo .sha256 y da igual
+          # cuál de las dos .apk elija el actualizador de la app.
+          cp "salida/${{ steps.version.outputs.apk }}" salida/ChatPrincess.apk
+          cmp "salida/${{ steps.version.outputs.apk }}" salida/ChatPrincess.apk
           rm -f "$RUNNER_TEMP/firma.jks"
 
       - name: Guardar la .apk como descarga
@@ -96,7 +101,7 @@ jobs:
         if: inputs.destino == 'borrador'
         run: |
           gh release create "v${{ steps.version.outputs.version }}" \
-            "salida/${{ steps.version.outputs.apk }}" "salida/${{ steps.version.outputs.apk }}.sha256" \
+            "salida/${{ steps.version.outputs.apk }}" "salida/${{ steps.version.outputs.apk }}.sha256" salida/ChatPrincess.apk \
             --draft --target "${{ github.sha }}" \
             --title "Chat Dpto. Compras Princess v${{ steps.version.outputs.version }}" --notes-file notas_release.md
           echo "Borrador creado. Revísalo en Releases y pulsa «Publish release» cuando quieras que se actualicen los móviles."

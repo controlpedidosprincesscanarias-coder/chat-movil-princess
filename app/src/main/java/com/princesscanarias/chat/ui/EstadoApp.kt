@@ -168,6 +168,26 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** (v1.0.6) «Guardar en…»: descarga el adjunto y lo escribe en el sitio elegido con el selector de Android. */
+    fun guardarAdjunto(m: Mensaje, destino: android.net.Uri?) {
+        val adj = m.adjunto ?: return
+        if (destino == null) return
+        aviso.value = "Guardando ${adj.nombre}…"
+        enSegundoPlano({ Archivos.guardar(getApplication(), destino, chat.api.descargar(adj.url)) }) {
+            aviso.value = "${adj.nombre} guardado"
+        }
+    }
+
+    /** (v1.0.6) «Compartir» un adjunto con otra app. */
+    fun compartirAdjunto(m: Mensaje) {
+        val adj = m.adjunto ?: return
+        aviso.value = "Preparando ${adj.nombre}…"
+        enSegundoPlano({ chat.api.descargar(adj.url) }) { datos ->
+            aviso.value = null
+            Archivos.compartir(getApplication(), adj.nombre, adj.mime, datos)
+        }
+    }
+
     /** (v1.0.4) Pone mi foto (canalId null) o la de un grupo. */
     fun cambiarFoto(uri: android.net.Uri?, canalId: String? = null) {
         if (uri == null) return

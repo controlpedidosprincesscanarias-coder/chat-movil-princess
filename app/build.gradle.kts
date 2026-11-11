@@ -24,8 +24,8 @@ android {
         applicationId = "com.princesscanarias.chat"
         minSdk = 26
         targetSdk = 35
-        versionCode = 104       // ← subir en cada versión (1.0.0 → 100, 1.0.2 → 102…)
-        versionName = "1.0.4"   // ← debe coincidir con la etiqueta de la Release (v + versionName)
+        versionCode = 106       // ← subir en cada versión (1.0.0 → 100, 1.0.2 → 102…)
+        versionName = "1.0.6"   // ← debe coincidir con la etiqueta de la Release (v + versionName)
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -60,6 +60,16 @@ android {
         resources.excludes += setOf("META-INF/INDEX.LIST", "META-INF/DEPENDENCIES", "META-INF/LICENSE*", "META-INF/NOTICE*")
     }
 }
+
+// (v1.0.6) El CHANGELOG.md del repositorio va dentro de la .apk (assets/CHANGELOG.md) para ver las notas de cada
+// versión en Ajustes sin Internet. Se copia en cada compilación, así que siempre es el de esa versión.
+val carpetaNotas = layout.buildDirectory.dir("generated/notas")
+val copiarNotas by tasks.registering(Copy::class) {
+    from(rootProject.file("CHANGELOG.md"))
+    into(carpetaNotas)
+}
+android.sourceSets["main"].assets.srcDir(carpetaNotas)
+tasks.named("preBuild") { dependsOn(copiarNotas) }
 
 dependencies {
     val bom = platform("androidx.compose:compose-bom:2024.10.01")
