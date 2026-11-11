@@ -1,3 +1,11 @@
+# v1.0.8
+
+- **Mantén pulsado un mensaje** y ahora también puedes:
+  - **↩ Responder:** sale «Respondiendo a…» encima de la caja de escribir (✕ para quitarlo), y tu respuesta lleva el mensaje citado arriba, como en WhatsApp.
+  - **↪ Reenviar…:** eliges la conversación o el compañero. Vale también para fotos y archivos. La copia lleva «↪ Reenviado».
+  - **🗑 Eliminar** (solo tus mensajes): pide confirmación y queda «🚫 Mensaje eliminado» para todos, al momento.
+- Necesita el servicio del chat v1.4.0.
+
 # v1.0.6
 
 - **Mantén pulsado un mensaje** para ver qué puedes hacer con él:
