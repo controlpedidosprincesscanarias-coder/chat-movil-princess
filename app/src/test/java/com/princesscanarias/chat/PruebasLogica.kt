@@ -5,6 +5,7 @@ package com.princesscanarias.chat
 import com.princesscanarias.chat.datos.Canal
 import com.princesscanarias.chat.datos.Fechas
 import com.princesscanarias.chat.datos.Mensaje
+import com.princesscanarias.chat.datos.Notas
 import com.princesscanarias.chat.datos.Seguridad
 import com.princesscanarias.chat.ui.Emoticonos
 import org.json.JSONObject
@@ -74,5 +75,31 @@ class PruebasLogica {
         assertTrue(Fechas.corta(java.time.OffsetDateTime.now().toString(), hoy).matches(Regex("\\d\\d:\\d\\d")))
         assertTrue(Fechas.corta("2020-01-02T10:00:00+00:00", hoy).matches(Regex("\\d\\d/\\d\\d \\d\\d:\\d\\d")))
         assertEquals("", Fechas.corta("no es fecha", hoy))
+    }
+
+    // (v1.0.6) Notas de cada versión (Ajustes → «Versión x.y.z»)
+    @Test fun notasDeUnaVersion() {
+        val md = "# v1.0.6\n\n- **Copiar** un mensaje.\n\n# v1.0.4\n\n- Fotos.\n"
+        assertEquals("- **Copiar** un mensaje.", Notas.de("1.0.6", md))
+        assertEquals("- Fotos.", Notas.de("v1.0.04", md))
+        assertNull(Notas.de("9.9.9", md))
+        assertEquals("• Copiar un mensaje.", Notas.legible(Notas.de("1.0.6", md)!!))
+    }
+
+    @Test fun elChangelogTieneLaVersionActual() {
+        val raiz = generateSequence(java.io.File("").absoluteFile) { it.parentFile }.first { java.io.File(it, "CHANGELOG.md").exists() }
+        val md = java.io.File(raiz, "CHANGELOG.md").readText()
+        assertTrue("CHANGELOG.md sin la versión ${BuildConfig.VERSION_NAME}", Notas.de(BuildConfig.VERSION_NAME, md) != null)
+    }
+
+    @Test fun cuandoEsUnaImagen() {
+        fun m(tipo: String?, nombre: String, mime: String? = null, url: String = "https://abc.supabase.co/x") =
+            Mensaje(1, "general", "a", "", "", tipo, com.princesscanarias.chat.datos.Adjunto(url, nombre, mime, 1))
+        assertTrue(m("imagen", "x").esImagen)
+        assertTrue(m("archivo", "FOTO.JPG").esImagen)
+        assertTrue(m(null, "x", "image/png").esImagen)
+        assertFalse(m("archivo", "factura.pdf").esImagen)
+        assertFalse(m("imagen", "x.jpg", url = "").esImagen)
+        assertFalse(Mensaje(1, "general", "a", "hola", "", "texto", null).esImagen)
     }
 }

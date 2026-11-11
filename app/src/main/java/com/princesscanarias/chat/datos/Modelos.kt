@@ -23,6 +23,16 @@ data class Mensaje(
     val tipo: String?,
     val adjunto: Adjunto?,
 ) {
+    /** (v1.0.6) Imagen adjunta: se ve en miniatura en la conversación en vez de solo su nombre. */
+    val esImagen: Boolean
+        get() {
+            val a = adjunto ?: return false
+            if (a.url.isBlank()) return false
+            val ext = a.nombre.substringAfterLast('.', "").lowercase()
+            return tipo == "imagen" || a.mime?.startsWith("image/") == true ||
+                ext in setOf("png", "jpg", "jpeg", "gif", "bmp", "webp")
+        }
+
     companion object {
         fun deJson(o: JSONObject, canalPorDefecto: String = ""): Mensaje {
             val adj = o.optJSONObject("adjunto")?.let {

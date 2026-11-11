@@ -78,15 +78,41 @@ object Archivos {
 
     /** Guarda un adjunto descargado y lo abre con la app que corresponda. */
     fun abrir(context: Context, nombre: String, mime: String?, datos: ByteArray) {
-        val dir = File(context.cacheDir, "adjuntos").apply { mkdirs() }
-        val f = File(dir, Seguridad.nombreSeguro(nombre))
-        f.writeBytes(datos)
-        val uri = FileProvider.getUriForFile(context, context.packageName + ".archivos", f)
-        val tipo = mime ?: MimeTypeMap.getSingleton().getMimeTypeFromExtension(f.extension.lowercase()) ?: "*/*"
+        val (uri, tipo) = enCache(context, nombre, mime, datos)
         val i = Intent(Intent.ACTION_VIEW).setDataAndType(uri, tipo)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
         try { context.startActivity(i) } catch (e: ActivityNotFoundException) {
             Toast.makeText(context, "No hay ninguna app para abrir este archivo", Toast.LENGTH_LONG).show()
         }
+    }
+
+    /** (v1.0.6) Copia en la caché de adjuntos para abrir o compartir, y devuelve su content:// y su tipo. */
+    private fun enCache(context: Context, nombre: String, mime: String?, datos: ByteArray): Pair<Uri, String> {
+        val dir = File(context.cacheDir, "adjuntos").apply { mkdirs() }
+        val f = File(dir, Seguridad.nombreSeguro(nombre))
+        f.writeBytes(datos)
+        val uri = FileProvider.getUriForFile(context, context.packageName + ".archivos", f)
+        val tipo = mime ?: MimeTypeMap.getSingleton().getMimeTypeFromExtension(f.extension.lowercase()) ?: "*/*"
+        return uri to tipo
+    }
+
+    /** (v1.0.6) «Compartir» un adjunto con otra app (WhatsApp, correo, Drive…). */
+    fun compartir(context: Context, nombre: String, mime: String?, datos: ByteArray) {
+        val (uri, tipo) = enCache(context, nombre, mime, datos)
+        val i = Intent(Intent.ACTION_SEND).setType(tipo).putExtra(Intent.EXTRA_STREAM, uri)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        context.startActivity(Intent.createChooser(i, "Compartir $nombre").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    /** (v1.0.6) «Compartir» el texto de un mensaje. */
+    fun compartirTexto(context: Context, texto: String) {
+        val i = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, texto)
+        context.startActivity(Intent.createChooser(i, "Compartir mensaje").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    /** (v1.0.6) «Guardar en…»: escribe el adjunto en el sitio elegido con el selector de Android (Descargas, Drive…). */
+    fun guardar(context: Context, destino: Uri, datos: ByteArray) {
+        context.contentResolver.openOutputStream(destino)?.use { it.write(datos) }
+            ?: throw IllegalStateException("No se pudo escribir en el destino elegido")
     }
 }
