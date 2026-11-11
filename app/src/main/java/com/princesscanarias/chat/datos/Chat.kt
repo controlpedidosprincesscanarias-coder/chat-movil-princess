@@ -66,6 +66,7 @@ class Chat(context: Context) {
 
     fun nombreDe(usuario: String?): String {
         if (usuario.isNullOrBlank()) return ""
+        if (usuario.equals(CuentaAvisos.BOT, true)) return CuentaAvisos.NOMBRE   // (v1.0.12) avisos de Control Pedidos
         return nombres[usuario.lowercase()] ?: usuario
     }
 

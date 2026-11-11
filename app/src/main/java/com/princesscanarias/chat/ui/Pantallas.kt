@@ -56,6 +56,7 @@ import com.princesscanarias.chat.R
 import com.princesscanarias.chat.datos.EstadoConexion
 import com.princesscanarias.chat.datos.Fechas
 import com.princesscanarias.chat.datos.Mensaje
+import com.princesscanarias.chat.datos.CuentaAvisos
 import com.princesscanarias.chat.datos.DetalleGrupo
 import com.princesscanarias.chat.datos.Notas
 import com.princesscanarias.chat.datos.Reenvio
@@ -307,7 +308,11 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
                 IconButton({ e.respondiendo.value = null }) { Icon(Icons.Default.Close, "Quitar la respuesta", tint = Colores.meta) }
             }
         }
-        Row(Modifier.fillMaxWidth().background(Colores.caja).padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        // (v1.0.12) En la conversación de avisos de Control Pedidos no se escribe
+        if (CuentaAvisos.esCanal(p.canalId)) {
+            Text("🔔 Aquí llegan los avisos de Control Pedidos (antes por Telegram). No se puede escribir en esta conversación.",
+                color = Colores.meta, fontSize = 13.sp, modifier = Modifier.fillMaxWidth().background(Colores.caja).padding(14.dp))
+        } else Row(Modifier.fillMaxWidth().background(Colores.caja).padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton({ emoticonos = !emoticonos }) { Text("😊", fontSize = 22.sp) }
             Box {
                 IconButton({ menuAdjuntar = true }) { Icon(Icons.Default.AttachFile, "Adjuntar", tint = Colores.texto) }
@@ -533,7 +538,8 @@ private fun BurbujaSola(m: Mensaje, propio: Boolean, quien: String, mostrarNombr
             }
             DropdownMenu(menu, { menu = false }) {
                 if (m.id != null) {
-                    DropdownMenuItem({ Text("↩  Responder") }, { menu = false; acciones.responder(m) })
+                    if (!m.remitente.equals(CuentaAvisos.BOT, true))      // (v1.0.12) a un aviso no se le responde
+                        DropdownMenuItem({ Text("↩  Responder") }, { menu = false; acciones.responder(m) })
                     DropdownMenuItem({ Text("↪  Reenviar…") }, { menu = false; acciones.reenviar(m) })
                 }
                 if (m.adjunto != null) {

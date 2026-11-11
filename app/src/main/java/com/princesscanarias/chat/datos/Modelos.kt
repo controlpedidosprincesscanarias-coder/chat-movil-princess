@@ -91,6 +91,17 @@ data class Canal(
 
 data class Usuario(val username: String, val nombre: String, val rol: String?, val avatar: String? = null)
 
+/** (v1.0.12, chat v1.6.0) Cuenta de los avisos de Control Pedidos (antes por Telegram): cada uno los recibe en su
+ *  conversación privada con ella, en la que no se puede escribir. */
+object CuentaAvisos {
+    const val BOT = "control-pedidos"
+    const val NOMBRE = "Control Pedidos"
+    fun esCanal(canalId: String?): Boolean {
+        val partes = canalId.orEmpty().split(":")
+        return partes.size == 3 && partes[0] == "dm" && BOT in partes.drop(1)
+    }
+}
+
 /** (v1.0.10, chat v1.5.0) Un integrante de un grupo. */
 data class Integrante(val username: String, val nombre: String, val avatar: String?, val esCreador: Boolean)
 

@@ -5,6 +5,7 @@ package com.princesscanarias.chat
 import com.princesscanarias.chat.datos.Canal
 import com.princesscanarias.chat.datos.Fechas
 import com.princesscanarias.chat.datos.Mensaje
+import com.princesscanarias.chat.datos.CuentaAvisos
 import com.princesscanarias.chat.datos.DetalleGrupo
 import com.princesscanarias.chat.datos.Notas
 import com.princesscanarias.chat.datos.Reenvio
@@ -140,5 +141,11 @@ class PruebasLogica {
         val c = d.candidatos(listOf(Usuario("Beto", "Beto", null), Usuario("dani", "Ángel", null), Usuario("carla", "carla", null)))
         assertEquals(listOf("carla", "dani"), c.map { it.username })
         assertFalse(DetalleGrupo.deJson(JSONObject("""{"canal_id":"grp:2"}""")).puedeGestionar)
+    }
+
+    // (v1.0.12, chat v1.6.0) La conversación de avisos de Control Pedidos
+    @Test fun conversacionDeAvisos() {
+        assertTrue(CuentaAvisos.esCanal("dm:ana:control-pedidos")); assertTrue(CuentaAvisos.esCanal("dm:control-pedidos:zoe"))
+        assertFalse(CuentaAvisos.esCanal("dm:ana:beto")); assertFalse(CuentaAvisos.esCanal("general")); assertFalse(CuentaAvisos.esCanal(null))
     }
 }
