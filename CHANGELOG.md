@@ -1,3 +1,12 @@
+# v1.0.6
+
+- **Mantén pulsado un mensaje** para ver qué puedes hacer con él:
+  - en un mensaje de texto, **Copiar** o **Compartir** (con WhatsApp, el correo…);
+  - en un adjunto, **Abrir**, **Guardar en…** (eliges la carpeta: Descargas, Drive…) o **Compartir**.
+- **Las imágenes se ven en la conversación**, en miniatura, en vez de solo su nombre. Un toque la abre.
+- **Novedades de cada versión:** en Ajustes, pulsa «Versión… · ver novedades».
+- **Descarga directa:** desde esta versión, el código QR del Organizador descarga la app sin pasar por la página de GitHub.
+
 # v1.0.4
 
 - **Fotos de perfil** (necesita el servicio del chat v1.3.0):
