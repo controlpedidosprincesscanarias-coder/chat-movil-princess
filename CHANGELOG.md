@@ -1,3 +1,9 @@
+# v1.0.12
+
+- **Los avisos de Control Pedidos, en el chat:** los que hasta ahora llegaban por Telegram (pedidos sin entregar, techo de gastos, cambios de estado…) llegan también a una conversación nueva, **«Control Pedidos»**, con su notificación. Cada uno recibe solo los suyos.
+- En esa conversación no se puede escribir. Un aviso se puede **reenviar** a un compañero (mantener pulsado → «↪ Reenviar…»).
+- Necesita el servicio del chat v1.6.0 y Control Pedidos v12.34.22.
+
 # v1.0.10
 
 - **Grupos:** toca la foto o el nombre de un grupo (arriba) para ver quién está en él, con su foto, y quién lo gestiona.
