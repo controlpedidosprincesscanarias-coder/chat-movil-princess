@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -56,6 +57,7 @@ import com.princesscanarias.chat.datos.EstadoConexion
 import com.princesscanarias.chat.datos.Fechas
 import com.princesscanarias.chat.datos.Mensaje
 import com.princesscanarias.chat.datos.Notas
+import com.princesscanarias.chat.datos.Reenvio
 import com.princesscanarias.chat.datos.Seguridad
 import coil.compose.AsyncImage
 
@@ -249,12 +251,19 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
     val guardar = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("*/*")) { uri ->
         guardarEste?.let { e.guardarAdjunto(it, uri) }; guardarEste = null
     }
+    var reenviarEste by remember { mutableStateOf<Mensaje?>(null) }
+    var eliminarEste by remember { mutableStateOf<Mensaje?>(null) }
     val portapapeles = LocalClipboardManager.current
     val acciones = AccionesMensaje(
         abrir = { e.abrirAdjunto(it) },
         copiar = { portapapeles.setText(AnnotatedString(it.contenido)); e.aviso.value = "Mensaje copiado" },
         compartir = { if (it.adjunto != null) e.compartirAdjunto(it) else Archivos.compartirTexto(ctx, it.contenido) },
         guardar = { guardarEste = it; guardar.launch(Seguridad.nombreSeguro(it.adjunto?.nombre)) },
+        responder = { e.respondiendo.value = it },
+        reenviar = { e.cargarUsuarios(); reenviarEste = it },
+        eliminar = { eliminarEste = it },
+        nombreDe = { e.chat.nombreDe(it) },
+        yo = e.chat.username,
     )
 
     LaunchedEffect(e.mensajes.size) { if (e.mensajes.isNotEmpty()) lista.animateScrollToItem(e.mensajes.size - 1) }
@@ -276,6 +285,19 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
             }
         }
         if (emoticonos) PanelEmoticonos { t -> texto = Emoticonos.anadir(texto, t) }
+        // (v1.0.8) «Respondiendo a …» encima de la caja de escribir
+        e.respondiendo.value?.let { r ->
+            Row(Modifier.fillMaxWidth().background(Colores.caja).padding(start = 12.dp, top = 6.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.width(3.dp).height(32.dp).background(Colores.dorado))
+                Column(Modifier.weight(1f).padding(start = 8.dp)) {
+                    Text("Respondiendo a ${if (r.remitente.equals(e.chat.username, true)) "ti" else e.chat.nombreDe(r.remitente)}",
+                        fontSize = 12.sp, color = Colores.dorado, fontWeight = FontWeight.Bold)
+                    Text(textoCita(r), fontSize = 12.sp, color = Colores.meta, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                IconButton({ e.respondiendo.value = null }) { Icon(Icons.Default.Close, "Quitar la respuesta", tint = Colores.meta) }
+            }
+        }
         Row(Modifier.fillMaxWidth().background(Colores.caja).padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton({ emoticonos = !emoticonos }) { Text("😊", fontSize = 22.sp) }
             Box {
@@ -296,6 +318,31 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
             }
         }
     }
+    // (v1.0.8) «Reenviar a…»: conversaciones que ya existen y compañeros sin privado
+    reenviarEste?.let { m ->
+        val destinos = remember(e.canales.size, e.usuarios.size) {
+            Reenvio.destinos(e.canales, e.usuarios, e.chat.username) { e.chat.nombreDe(it) }
+        }
+        AlertDialog(onDismissRequest = { reenviarEste = null },
+            title = { Text("Reenviar a…") },
+            text = {
+                LazyColumn(Modifier.heightIn(max = 380.dp)) {
+                    items(destinos) { d ->
+                        Text(d.etiqueta, color = Colores.texto, modifier = Modifier.fillMaxWidth()
+                            .clickable { reenviarEste = null; e.reenviar(m, d.canalId, d.destinatario) }
+                            .padding(vertical = 10.dp))
+                    }
+                }
+            },
+            confirmButton = { TextButton({ reenviarEste = null }) { Text("Cancelar") } })
+    }
+    eliminarEste?.let { m ->
+        AlertDialog(onDismissRequest = { eliminarEste = null },
+            title = { Text("¿Eliminar el mensaje?") },
+            text = { Text("Se elimina para todos y queda «🚫 Mensaje eliminado». No se puede deshacer.") },
+            confirmButton = { TextButton({ eliminarEste = null; e.eliminar(m) }) { Text("Eliminar", color = Colores.error) } },
+            dismissButton = { TextButton({ eliminarEste = null }) { Text("Cancelar") } })
+    }
     pendiente?.let { a ->
         AlertDialog(onDismissRequest = { pendiente = null },
             title = { Text("¿Enviar a «${p.titulo}»?") },
@@ -305,12 +352,22 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
     }
 }
 
+/** (v1.0.8) Texto corto de un mensaje para la barra «Respondiendo a…». */
+private fun textoCita(m: Mensaje): String =
+    m.adjunto?.let { (if (m.esImagen) "📷 " else "📎 ") + it.nombre } ?: m.contenido.replace('\n', ' ')
+
 /** (v1.0.6) Lo que se puede hacer con un mensaje al mantenerlo pulsado. */
 private class AccionesMensaje(
     val abrir: (Mensaje) -> Unit,
     val copiar: (Mensaje) -> Unit,
     val compartir: (Mensaje) -> Unit,
     val guardar: (Mensaje) -> Unit,
+    // (v1.0.8, chat v1.4.0) responder citando, reenviar y eliminar
+    val responder: (Mensaje) -> Unit = {},
+    val reenviar: (Mensaje) -> Unit = {},
+    val eliminar: (Mensaje) -> Unit = {},
+    val nombreDe: (String) -> String = { it },
+    val yo: String = "",
 )
 
 @Composable
@@ -334,9 +391,28 @@ private fun BurbujaSola(m: Mensaje, propio: Boolean, quien: String, mostrarNombr
             Column(Modifier.widthIn(max = 300.dp)
                 .background(if (propio) Colores.propio else Colores.ajeno, RoundedCornerShape(14.dp))
                 // (v1.0.6) Un toque abre el adjunto; mantener pulsado abre el menú (copiar, compartir, guardar)
-                .combinedClickable(onClick = { if (m.adjunto != null) acciones.abrir(m) }, onLongClick = { menu = true })
+                .combinedClickable(onClick = { if (m.adjunto != null) acciones.abrir(m) },
+                    onLongClick = { if (!m.eliminado) menu = true })
                 .padding(horizontal = 12.dp, vertical = 8.dp)) {
-                if (m.adjunto != null) {
+                // (v1.0.8) «↪ Reenviado» y la cita del mensaje al que responde
+                if (m.reenviado) Text("↪ Reenviado", fontSize = 11.sp, color = Colores.texto.copy(alpha = 0.7f),
+                    fontStyle = FontStyle.Italic)
+                m.respondeA?.let { c ->
+                    Row(Modifier.padding(bottom = 4.dp).background(Colores.texto.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
+                        .height(IntrinsicSize.Min)) {
+                        Box(Modifier.width(3.dp).fillMaxHeight().background(Colores.dorado))
+                        Column(Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                            Text(if (c.remitente.equals(acciones.yo, true)) "Tú" else acciones.nombreDe(c.remitente),
+                                fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Colores.dorado)
+                            Text(c.contenido, fontSize = 12.sp, color = Colores.texto.copy(alpha = 0.8f), maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                fontStyle = if (c.tipo == "eliminado") FontStyle.Italic else FontStyle.Normal)
+                        }
+                    }
+                }
+                if (m.eliminado) {
+                    Text(m.contenido, color = Colores.texto.copy(alpha = 0.6f), fontSize = 15.sp, fontStyle = FontStyle.Italic)
+                } else if (m.adjunto != null) {
                     // (v1.0.6) Las imágenes se ven en miniatura (solo del almacén de adjuntos permitido)
                     if (m.esImagen && Seguridad.urlAdjuntoPermitida(m.adjunto.url)) {
                         AsyncImage(model = m.adjunto.url, contentDescription = m.adjunto.nombre,
@@ -356,6 +432,10 @@ private fun BurbujaSola(m: Mensaje, propio: Boolean, quien: String, mostrarNombr
                 Text(Fechas.corta(m.creadoEn), fontSize = 10.sp, color = Colores.texto.copy(alpha = 0.7f), modifier = Modifier.align(Alignment.End))
             }
             DropdownMenu(menu, { menu = false }) {
+                if (m.id != null) {
+                    DropdownMenuItem({ Text("↩  Responder") }, { menu = false; acciones.responder(m) })
+                    DropdownMenuItem({ Text("↪  Reenviar…") }, { menu = false; acciones.reenviar(m) })
+                }
                 if (m.adjunto != null) {
                     DropdownMenuItem({ Text("📂  Abrir") }, { menu = false; acciones.abrir(m) })
                     DropdownMenuItem({ Text("💾  Guardar en…") }, { menu = false; acciones.guardar(m) })
@@ -363,6 +443,8 @@ private fun BurbujaSola(m: Mensaje, propio: Boolean, quien: String, mostrarNombr
                     DropdownMenuItem({ Text("📋  Copiar") }, { menu = false; acciones.copiar(m) })
                 }
                 DropdownMenuItem({ Text("📤  Compartir") }, { menu = false; acciones.compartir(m) })
+                if (propio && m.id != null)
+                    DropdownMenuItem({ Text("🗑  Eliminar", color = Colores.error) }, { menu = false; acciones.eliminar(m) })
             }
         }
     }

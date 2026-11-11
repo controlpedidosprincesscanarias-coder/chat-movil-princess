@@ -36,6 +36,9 @@ class Chat(context: Context) {
     private val _nuevos = MutableSharedFlow<Mensaje>(extraBufferCapacity = 64)
     /** Cada mensaje que llega en tiempo real (de cualquiera, también los propios desde el PC). */
     val nuevos: SharedFlow<Mensaje> = _nuevos
+    private val _eliminados = MutableSharedFlow<Pair<Long, String>>(extraBufferCapacity = 32)
+    /** (v1.0.8) Mensajes eliminados en tiempo real: (id, canal). */
+    val eliminados: SharedFlow<Pair<Long, String>> = _eliminados
     private val _errores = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val errores: SharedFlow<String> = _errores
 
@@ -150,6 +153,11 @@ class Chat(context: Context) {
                     if (url != null) fotos[u] = url else fotos.remove(u)
                 }
                 _fotosCambiadas.value++   // los grupos se vuelven a leer con la lista de conversaciones
+            }
+        }
+        s.on("mensaje_eliminado") { args ->
+            (args.firstOrNull() as? JSONObject)?.let { o ->
+                if (o.has("id")) _eliminados.tryEmit(o.optLong("id") to (o.texto("canal_id") ?: ""))
             }
         }
         s.on("error_chat") { args ->
