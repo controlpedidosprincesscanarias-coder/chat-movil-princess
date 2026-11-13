@@ -6,6 +6,7 @@ import com.princesscanarias.chat.datos.Canal
 import com.princesscanarias.chat.datos.Fechas
 import com.princesscanarias.chat.datos.Mensaje
 import com.princesscanarias.chat.datos.CuentaAvisos
+import com.princesscanarias.chat.datos.Conversaciones
 import com.princesscanarias.chat.datos.DetalleGrupo
 import com.princesscanarias.chat.datos.Notas
 import com.princesscanarias.chat.datos.Reenvio
@@ -147,5 +148,25 @@ class PruebasLogica {
     @Test fun conversacionDeAvisos() {
         assertTrue(CuentaAvisos.esCanal("dm:ana:control-pedidos")); assertTrue(CuentaAvisos.esCanal("dm:control-pedidos:zoe"))
         assertFalse(CuentaAvisos.esCanal("dm:ana:beto")); assertFalse(CuentaAvisos.esCanal("general")); assertFalse(CuentaAvisos.esCanal(null))
+    }
+
+    // (v1.0.14) Vaciar y eliminar chats, y el estado del otro (chat v1.7.0)
+    @Test fun vaciarYEliminar() {
+        assertTrue(Conversaciones.puedeVaciar("general")); assertTrue(Conversaciones.puedeVaciar("grp:x")); assertFalse(Conversaciones.puedeVaciar(null))
+        assertTrue(Conversaciones.puedeEliminar("dm:ana:beto")); assertTrue(Conversaciones.puedeEliminar("dm:ana:control-pedidos"))
+        assertFalse(Conversaciones.puedeEliminar("general")); assertFalse(Conversaciones.puedeEliminar("grp:x")); assertFalse(Conversaciones.puedeEliminar(null))
+    }
+
+    @Test fun estadoDelOtro() {
+        assertTrue(Conversaciones.esDestinoNoDisponible("usuario_desactivado")); assertTrue(Conversaciones.esDestinoNoDisponible("usuario_no_existe"))
+        assertFalse(Conversaciones.esDestinoNoDisponible(null)); assertFalse(Conversaciones.esDestinoNoDisponible("otro"))
+        assertTrue(Conversaciones.avisoEstado("desactivado", "Beto")!!.contains("temporalmente desactivado"))
+        assertTrue(Conversaciones.avisoEstado("no_existe", "Beto")!!.contains("ya no existe"))
+        assertEquals(null, Conversaciones.avisoEstado("activo", "Beto")); assertEquals(null, Conversaciones.avisoEstado(null, "Beto"))
+        assertEquals("Usuario no disponible", Conversaciones.tituloDestino("usuario_no_existe"))
+        assertEquals("Usuario desactivado", Conversaciones.tituloDestino("usuario_desactivado"))
+        val c = Canal.deJson(JSONObject("""{"canal_id":"dm:ana:beto","tipo":"privado","otro_usuario":"beto","otro_estado":"no_existe"}"""))
+        assertEquals("no_existe", c.otroEstado)
+        assertEquals(null, Canal.deJson(JSONObject("""{"canal_id":"general","tipo":"general"}""")).otroEstado)
     }
 }

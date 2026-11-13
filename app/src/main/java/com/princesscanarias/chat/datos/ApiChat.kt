@@ -13,7 +13,9 @@ import java.io.IOException
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
-class ErrorChat(mensaje: String, val codigo: Int = 0) : IOException(mensaje)
+/** `codigo`: HTTP. `motivo` (v1.0.14, chat v1.7.0): «usuario_desactivado» / «usuario_no_existe» al escribir a
+ *  alguien que ya no está activo en Control Pedidos. */
+class ErrorChat(mensaje: String, val codigo: Int = 0, val motivo: String? = null) : IOException(mensaje)
 
 /**
  * Cliente REST del chat. El mismo contrato que el Organizador (app/services/chat_client.py):
@@ -82,7 +84,7 @@ class ApiChat(
             }
             val texto = r.body?.string().orEmpty()
             val datos = try { JSONObject(texto) } catch (e: Exception) { JSONObject() }
-            if (!r.isSuccessful) throw ErrorChat(datos.texto("error") ?: "Error del chat (${r.code})", r.code)
+            if (!r.isSuccessful) throw ErrorChat(datos.texto("error") ?: "Error del chat (${r.code})", r.code, datos.texto("codigo"))
             return datos
         }
     }
@@ -114,6 +116,12 @@ class ApiChat(
     }
 
     // ── (v1.0.10) Gestión de grupos (chat v1.5.0) ──────────────────────────────
+    /** (v1.0.14, chat v1.7.0) Vacía la conversación solo para mí (el otro sigue viendo sus mensajes). */
+    fun vaciarChat(canalId: String) { peticion("/api/chat/canales/$canalId/vaciar", "POST", JSONObject()) }
+
+    /** (v1.0.14) Elimina un chat privado solo para mí: desaparece de la lista hasta que el otro vuelva a escribir. */
+    fun eliminarChat(canalId: String) { peticion("/api/chat/canales/$canalId/eliminar", "POST", JSONObject()) }
+
     fun detalleGrupo(canalId: String): DetalleGrupo = DetalleGrupo.deJson(peticion("/api/chat/grupos/$canalId"))
 
     fun miembrosGrupo(canalId: String, anadir: List<String> = emptyList(), quitar: List<String> = emptyList()): DetalleGrupo =

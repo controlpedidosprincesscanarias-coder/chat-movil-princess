@@ -42,6 +42,9 @@ class Chat(context: Context) {
     private val _grupos = MutableSharedFlow<Pair<String, Boolean>>(extraBufferCapacity = 16)
     /** (v1.0.10) Un grupo ha cambiado: (canal, eliminado). */
     val grupos: SharedFlow<Pair<String, Boolean>> = _grupos
+    private val _ocultas = MutableSharedFlow<Pair<String, Boolean>>(extraBufferCapacity = 16)
+    /** (v1.0.14) Vacié o eliminé una conversación (aquí o en otro dispositivo mío): (canal, eliminada). */
+    val ocultas: SharedFlow<Pair<String, Boolean>> = _ocultas
     private val _errores = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val errores: SharedFlow<String> = _errores
 
@@ -167,6 +170,11 @@ class Chat(context: Context) {
         s.on("grupo_cambiado") { args ->
             (args.firstOrNull() as? JSONObject)?.let { o ->
                 o.texto("canal_id")?.let { _grupos.tryEmit(it to o.optBoolean("eliminado", false)) }
+            }
+        }
+        s.on("conversacion_oculta") { args ->
+            (args.firstOrNull() as? JSONObject)?.let { o ->
+                o.texto("canal_id")?.let { _ocultas.tryEmit(it to o.optBoolean("eliminada", false)) }
             }
         }
         s.on("error_chat") { args ->

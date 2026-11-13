@@ -1,3 +1,11 @@
+# v1.0.14
+
+- **Vaciar un chat:** menú **⋮** de la conversación (o mantener pulsado el chat en la lista) → **🧹 Vaciar chat**. Se borran de tu móvil y de tu Organizador los mensajes que hay ahora; la otra persona los sigue viendo.
+- **Eliminar un chat completo** (chats privados): **🗑 Eliminar chat**. Desaparece de tu lista con todos sus mensajes. Si esa persona vuelve a escribirte, el chat aparece de nuevo, solo con lo nuevo. Ella no nota nada.
+- **Usuarios desactivados:** si escribes a alguien desactivado en Control Pedidos, sale un aviso de que está **temporalmente desactivado** y el mensaje no se envía (el texto vuelve a la caja de escribir). En la lista y en la conversación se ve «⏸ Desactivado».
+- **Usuarios que ya no existen:** si se eliminó de Control Pedidos, el aviso dice que **ya no existe** y ofrece **Eliminar chat**. En la lista se ve «⛔ Ya no existe».
+- Necesita el servicio del chat v1.7.0.
+
 # v1.0.12
 
 - **Los avisos de Control Pedidos, en el chat:** los que hasta ahora llegaban por Telegram (pedidos sin entregar, techo de gastos, cambios de estado…) llegan también a una conversación nueva, **«Control Pedidos»**, con su notificación. Cada uno recibe solo los suyos.
