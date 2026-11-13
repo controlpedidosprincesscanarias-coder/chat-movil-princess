@@ -37,9 +37,9 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -91,7 +91,7 @@ jobs:
           rm -f "$RUNNER_TEMP/firma.jks"
 
       - name: Guardar la .apk como descarga
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ChatPrincess_${{ steps.version.outputs.version }}
           path: salida/
