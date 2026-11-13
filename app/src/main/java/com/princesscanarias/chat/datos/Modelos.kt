@@ -74,6 +74,7 @@ data class Canal(
     val ultimoContenido: String?,
     val ultimoCreadoEn: String?,
     val avatar: String? = null,     // (v1.0.4) foto del compañero (privado) o del grupo
+    val otroEstado: String? = null, // (v1.0.14, chat v1.7.0) activo | desactivado | no_existe (solo privados)
 ) {
     companion object {
         fun deJson(o: JSONObject) = Canal(
@@ -85,6 +86,7 @@ data class Canal(
             ultimoContenido = o.optJSONObject("ultimo_mensaje")?.texto("contenido"),
             ultimoCreadoEn = o.optJSONObject("ultimo_mensaje")?.texto("creado_en"),
             avatar = o.texto("avatar"),
+            otroEstado = o.texto("otro_estado"),
         )
     }
 }

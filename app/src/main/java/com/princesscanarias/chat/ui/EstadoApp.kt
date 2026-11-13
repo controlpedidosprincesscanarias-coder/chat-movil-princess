@@ -11,6 +11,7 @@ import com.princesscanarias.chat.BuildConfig
 import com.princesscanarias.chat.datos.Actualizaciones
 import com.princesscanarias.chat.datos.Canal
 import com.princesscanarias.chat.datos.Chat
+import com.princesscanarias.chat.datos.Conversaciones
 import com.princesscanarias.chat.datos.DetalleGrupo
 import com.princesscanarias.chat.datos.ErrorChat
 import com.princesscanarias.chat.datos.Mensaje
@@ -33,6 +34,9 @@ sealed class Pantalla {
 }
 
 /** Estado de la interfaz: qué pantalla se ve, conversaciones, mensajes abiertos y avisos. */
+/** (v1.0.14) Al enviar: el otro está desactivado («usuario_desactivado») o ya no existe («usuario_no_existe»). */
+data class DestinoNoDisponible(val motivo: String, val mensaje: String, val canalId: String?)
+
 class EstadoApp(app: Application) : AndroidViewModel(app) {
     val chat = Chat.de(app)
     val pantalla = mutableStateOf<Pantalla>(if (chat.credenciales.hayCredenciales) Pantalla.Lista else Pantalla.Acceso)
@@ -46,6 +50,10 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
     val respondiendo = mutableStateOf<Mensaje?>(null)
     /** (v1.0.10) Integrantes del grupo abierto, si se ha pulsado su cabecera (null = cerrado). */
     val detalleGrupo = mutableStateOf<DetalleGrupo?>(null)
+    /** (v1.0.14) Al enviar, el otro está desactivado o ya no existe (ventana con «Eliminar chat» si ya no existe). */
+    val destinoNoDisponible = mutableStateOf<DestinoNoDisponible?>(null)
+    /** (v1.0.14) Texto que no se pudo enviar: vuelve a la caja de escribir para no perderlo. */
+    val borradorDevuelto = mutableStateOf<String?>(null)
     private var canalAbierto: String? = null
     private var buscadaActualizacion = false
     private var refresco: Job? = null
@@ -68,6 +76,13 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
                     if (eliminado) { cerrarConversacion(); aviso.value = "El grupo se ha eliminado" }
                     else comprobarGrupo(canal)
                 }
+                refrescarListaPronto()
+            }
+        }
+        // (v1.0.14) Vacié o eliminé una conversación desde otro dispositivo mío (o desde este)
+        viewModelScope.launch {
+            chat.ocultas.collect { (canal, eliminada) ->
+                if (canal == canalAbierto) { if (eliminada) cerrarConversacion() else mensajes.clear() }
                 refrescarListaPronto()
             }
         }
@@ -115,6 +130,37 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
                 aviso.value = e.message ?: "Error de conexión"
             }
         }
+    }
+
+    /** (v1.0.14) Como enSegundoPlano, pero si el otro está desactivado o ya no existe sale su ventana. */
+    private fun <T> enviando(canal: String?, texto: String?, bloque: () -> T, alTerminar: (T) -> Unit) {
+        viewModelScope.launch {
+            try { alTerminar(withContext(Dispatchers.IO) { bloque() }) } catch (e: ErrorChat) {
+                if (Conversaciones.esDestinoNoDisponible(e.motivo)) {
+                    if (!texto.isNullOrEmpty()) borradorDevuelto.value = texto
+                    destinoNoDisponible.value = DestinoNoDisponible(e.motivo!!, e.message ?: "", canal)
+                    refrescarListaPronto()
+                } else aviso.value = e.message ?: "Error de conexión"
+            } catch (e: Exception) {
+                aviso.value = e.message ?: "Error de conexión"
+            }
+        }
+    }
+
+    /** (v1.0.14) Vacía la conversación solo para mí. */
+    fun vaciarChat(canal: String) = enSegundoPlano({ chat.api.vaciarChat(canal) }) {
+        if (canal == canalAbierto) mensajes.clear()
+        Avisos.quitar(getApplication(), canal)
+        aviso.value = "Chat vaciado"
+        if (pantalla.value == Pantalla.Lista) cargarCanales()
+    }
+
+    /** (v1.0.14) Elimina un chat privado solo para mí: vuelve a salir si el otro escribe. */
+    fun eliminarChat(canal: String) = enSegundoPlano({ chat.api.eliminarChat(canal) }) {
+        destinoNoDisponible.value = null
+        Avisos.quitar(getApplication(), canal)
+        if (canal == canalAbierto) cerrarConversacion() else cargarCanales()
+        aviso.value = "Chat eliminado"
     }
 
     fun cargarCanales() = enSegundoPlano({ chat.refrescarNombresSiHaceFalta(); chat.api.canales() }) { lista ->
@@ -176,7 +222,7 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
         val canal = canalAbierto ?: p.canalId
         val citado = respondiendo.value?.id
         respondiendo.value = null
-        enSegundoPlano({ chat.api.enviarMensaje(canal, p.destinatario, texto, citado) }) { anadirSiFalta(it) }
+        enviando(canal, texto, { chat.api.enviarMensaje(canal, p.destinatario, texto, citado) }) { anadirSiFalta(it) }
     }
 
     // ── (v1.0.10) Gestión de grupos ───────────────────────────────────────────
@@ -238,7 +284,7 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
     fun reenviar(m: Mensaje, canalId: String?, destinatario: String?) {
         val id = m.id ?: return
         aviso.value = "Reenviando…"
-        enSegundoPlano({ chat.api.reenviar(id, canalId, destinatario) }) { nuevo ->
+        enviando(canalId, null, { chat.api.reenviar(id, canalId, destinatario) }) { nuevo ->
             aviso.value = "Mensaje reenviado"
             if (nuevo.canalId == canalAbierto) anadirSiFalta(nuevo)
             refrescarListaPronto()
@@ -248,7 +294,7 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
     fun enviarArchivo(a: ArchivoListo) {
         val canal = canalAbierto ?: return
         aviso.value = "Enviando ${a.nombre}…"
-        enSegundoPlano({ chat.api.enviarArchivo(canal, a.nombre, a.mime, a.datos) }) {
+        enviando(canal, null, { chat.api.enviarArchivo(canal, a.nombre, a.mime, a.datos) }) {
             anadirSiFalta(it); aviso.value = null
         }
     }

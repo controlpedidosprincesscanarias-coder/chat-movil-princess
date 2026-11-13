@@ -57,6 +57,7 @@ import com.princesscanarias.chat.datos.EstadoConexion
 import com.princesscanarias.chat.datos.Fechas
 import com.princesscanarias.chat.datos.Mensaje
 import com.princesscanarias.chat.datos.CuentaAvisos
+import com.princesscanarias.chat.datos.Conversaciones
 import com.princesscanarias.chat.datos.DetalleGrupo
 import com.princesscanarias.chat.datos.Notas
 import com.princesscanarias.chat.datos.Reenvio
@@ -80,6 +81,20 @@ fun AppChat(e: EstadoApp) {
                 Pantalla.Ajustes -> PantallaAjustes(e)
             }
         }
+    }
+    // (v1.0.14) Al enviar: el otro está desactivado o ya no existe en Control Pedidos
+    e.destinoNoDisponible.value?.let { d ->
+        val puedeEliminar = d.motivo == Conversaciones.NO_EXISTE && Conversaciones.puedeEliminar(d.canalId)
+        AlertDialog(
+            onDismissRequest = { e.destinoNoDisponible.value = null },
+            title = { Text(Conversaciones.tituloDestino(d.motivo)) },
+            text = { Text(d.mensaje) },
+            confirmButton = {
+                if (puedeEliminar) TextButton({ e.eliminarChat(d.canalId!!) }) { Text("Eliminar chat", color = Colores.error) }
+                else TextButton({ e.destinoNoDisponible.value = null }) { Text("Aceptar") }
+            },
+            dismissButton = { if (puedeEliminar) TextButton({ e.destinoNoDisponible.value = null }) { Text("Cerrar") } },
+        )
     }
     e.actualizacion.value?.let { v ->
         AlertDialog(
@@ -165,6 +180,7 @@ fun PantallaAcceso(e: EstadoApp) {
 }
 
 // ── Conversaciones ────────────────────────────────────────────────────────
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PantallaLista(e: EstadoApp) {
     val estado by e.chat.estado.collectAsState()
@@ -180,7 +196,11 @@ fun PantallaLista(e: EstadoApp) {
             LazyColumn(Modifier.fillMaxSize()) {
                 items(e.canales, key = { it.id }) { c ->
                     val titulo = e.titulo(c)
-                    Row(Modifier.fillMaxWidth().clickable { e.abrirConversacion(c.id, null, titulo) }
+                    var menu by remember { mutableStateOf(false) }
+                    // (v1.0.14) Mantener pulsado: vaciar o eliminar el chat
+                    Box {
+                    Row(Modifier.fillMaxWidth().combinedClickable(onClick = { e.abrirConversacion(c.id, null, titulo) },
+                            onLongClick = { menu = true })
                         .padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         when (c.tipo) {
                             "general" -> Box(Modifier.size(44.dp).background(Colores.cabecera, CircleShape), contentAlignment = Alignment.Center) {
@@ -193,6 +213,9 @@ fun PantallaLista(e: EstadoApp) {
                         Column(Modifier.weight(1f)) {
                             Text(titulo, fontWeight = if (c.noLeidos > 0) FontWeight.Bold else FontWeight.Medium, color = Colores.texto,
                                 maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Conversaciones.etiquetaEstado(c.otroEstado)?.let {
+                                Text(it, color = Colores.error, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
                             c.ultimoContenido?.let { Text(it, color = Colores.meta, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                         }
                         Column(horizontalAlignment = Alignment.End) {
@@ -203,6 +226,8 @@ fun PantallaLista(e: EstadoApp) {
                                 }
                             }
                         }
+                    }
+                    MenuChat(e, c.id, titulo, menu) { menu = false }
                     }
                     HorizontalDivider(color = Colores.caja)
                 }
@@ -271,6 +296,9 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
         yo = e.chat.username,
     )
 
+    // (v1.0.14) Si no se pudo enviar (el otro no está), el texto vuelve a la caja de escribir
+    val devuelto by e.borradorDevuelto
+    LaunchedEffect(devuelto) { devuelto?.let { texto = it; e.borradorDevuelto.value = null } }
     LaunchedEffect(e.mensajes.size) { if (e.mensajes.isNotEmpty()) lista.animateScrollToItem(e.mensajes.size - 1) }
 
     Column(Modifier.fillMaxSize().imePadding()) {
@@ -280,6 +308,24 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
                     icono = if (esGrupo) IconoGrupo else null) }
             }, alPulsar = if (esGrupo) ({ e.verGrupo(p.canalId!!) }) else null) {
             if (esGrupo) IconButton({ fotoGrupo.launch("image/*") }) { Icon(Icons.Default.AddAPhoto, "Cambiar la foto del grupo") }
+            // (v1.0.14) Vaciar o eliminar este chat
+            if (Conversaciones.puedeVaciar(p.canalId)) {
+                var menuChat by remember { mutableStateOf(false) }
+                Box {
+                    IconButton({ menuChat = true }) { Icon(Icons.Default.MoreVert, "Más opciones") }
+                    MenuChat(e, p.canalId!!, p.titulo, menuChat) { menuChat = false }
+                }
+            }
+        }
+        // (v1.0.14) El otro está desactivado o ya no existe en Control Pedidos
+        Conversaciones.avisoEstado(canal?.otroEstado, p.titulo)?.let { t ->
+            Row(Modifier.fillMaxWidth().background(Colores.caja).padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Text("⚠  $t", color = Colores.texto, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                if (canal?.otroEstado == "no_existe" && Conversaciones.puedeEliminar(p.canalId)) {
+                    TextButton({ e.eliminarChat(p.canalId!!) }) { Text("Eliminar chat", color = Colores.error) }
+                }
+            }
         }
         if (e.cargando.value && e.mensajes.isEmpty()) LinearProgressIndicator(Modifier.fillMaxWidth(), color = Colores.dorado)
         LazyColumn(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 10.dp), state = lista,
@@ -364,6 +410,31 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
             text = { Text("${a.nombre}  (${a.datos.size / 1024} KB)") },
             confirmButton = { TextButton({ pendiente = null; e.enviarArchivo(a) }) { Text("Enviar") } },
             dismissButton = { TextButton({ pendiente = null }) { Text("Cancelar") } })
+    }
+}
+
+/** (v1.0.14) Menú «Vaciar chat» / «Eliminar chat» (con confirmación). Solo afecta a mí: el otro no nota nada,
+ *  y un chat eliminado vuelve a salir si el otro escribe. */
+@Composable
+private fun MenuChat(e: EstadoApp, canalId: String, titulo: String, abierto: Boolean, cerrar: () -> Unit) {
+    var confirmar by remember { mutableStateOf<String?>(null) }
+    DropdownMenu(abierto, cerrar) {
+        if (Conversaciones.puedeVaciar(canalId))
+            DropdownMenuItem({ Text("🧹  Vaciar chat") }, { cerrar(); confirmar = "vaciar" })
+        if (Conversaciones.puedeEliminar(canalId))
+            DropdownMenuItem({ Text("🗑  Eliminar chat", color = Colores.error) }, { cerrar(); confirmar = "eliminar" })
+    }
+    when (confirmar) {
+        "vaciar" -> AlertDialog(onDismissRequest = { confirmar = null },
+            title = { Text("¿Vaciar el chat con «$titulo»?") },
+            text = { Text("Se borran de tu móvil y de tu Organizador los mensajes que hay ahora. La otra persona los sigue viendo.") },
+            confirmButton = { TextButton({ confirmar = null; e.vaciarChat(canalId) }) { Text("Vaciar", color = Colores.error) } },
+            dismissButton = { TextButton({ confirmar = null }) { Text("Cancelar") } })
+        "eliminar" -> AlertDialog(onDismissRequest = { confirmar = null },
+            title = { Text("¿Eliminar el chat con «$titulo»?") },
+            text = { Text("Desaparece de tu lista con todos sus mensajes. Si vuelve a escribirte, el chat aparecerá de nuevo (solo con lo nuevo). La otra persona no nota nada.") },
+            confirmButton = { TextButton({ confirmar = null; e.eliminarChat(canalId) }) { Text("Eliminar", color = Colores.error) } },
+            dismissButton = { TextButton({ confirmar = null }) { Text("Cancelar") } })
     }
 }
 
