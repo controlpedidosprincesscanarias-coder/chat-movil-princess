@@ -299,6 +299,31 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** (v1.0.16) Envía el mensaje de voz grabado (y borra el archivo temporal). */
+    fun enviarVoz(archivo: java.io.File, duracionMs: Long) {
+        val canal = canalAbierto ?: run { archivo.delete(); return }
+        aviso.value = "Enviando mensaje de voz…"
+        enviando(canal, null, {
+            try { chat.api.enviarVoz(canal, archivo.readBytes(), duracionMs) } finally { archivo.delete() }
+        }) { anadirSiFalta(it); aviso.value = null }
+    }
+
+    /** (v1.0.16) El audio de un mensaje de voz, descargado una vez y guardado en la caché de la app (null si falla). */
+    fun audioDe(m: Mensaje, listo: (java.io.File?) -> Unit) {
+        val adj = m.adjunto ?: return listo(null)
+        val dir = java.io.File(getApplication<android.app.Application>().cacheDir, "voz").apply { mkdirs() }
+        val f = java.io.File(dir, "${m.id ?: adj.url.hashCode()}.m4a")
+        if (f.length() > 0) return listo(f)
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) { f.writeBytes(chat.api.descargar(adj.url)) }
+                listo(f)
+            } catch (e: Exception) {
+                f.delete(); aviso.value = e.message ?: "No se pudo descargar el mensaje de voz"; listo(null)
+            }
+        }
+    }
+
     fun abrirAdjunto(m: Mensaje) {
         val adj = m.adjunto ?: return
         aviso.value = "Abriendo ${adj.nombre}…"

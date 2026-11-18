@@ -12,7 +12,8 @@ import java.time.LocalDate
 fun JSONObject.texto(clave: String): String? =
     if (!has(clave) || isNull(clave)) null else optString(clave).ifBlank { null }
 
-data class Adjunto(val url: String, val nombre: String, val mime: String?, val tamano: Long?)
+data class Adjunto(val url: String, val nombre: String, val mime: String?, val tamano: Long?,
+                   val duracionMs: Long? = null)   // (v1.0.16, chat v1.8.0) solo en los mensajes de voz
 
 /** (v1.0.8, chat v1.4.0) El mensaje al que responde otro: quién, qué (recortado por el servidor) y de qué tipo. */
 data class Cita(val id: Long, val remitente: String, val contenido: String, val tipo: String?)
@@ -31,6 +32,9 @@ data class Mensaje(
     /** (v1.0.8) Lo eliminó su autor: se ve «🚫 Mensaje eliminado», sin menú. */
     val eliminado: Boolean get() = tipo == "eliminado"
 
+    /** (v1.0.16, chat v1.8.0) Mensaje de voz: se reproduce en la propia burbuja. */
+    val esVoz: Boolean get() = tipo == "voz" && adjunto != null && adjunto.url.isNotBlank()
+
     /** (v1.0.6) Imagen adjunta: se ve en miniatura en la conversación en vez de solo su nombre. */
     val esImagen: Boolean
         get() {
@@ -45,7 +49,8 @@ data class Mensaje(
         fun deJson(o: JSONObject, canalPorDefecto: String = ""): Mensaje {
             val adj = o.optJSONObject("adjunto")?.let {
                 Adjunto(it.texto("url") ?: "", it.texto("nombre_archivo") ?: "archivo",
-                    it.texto("mime_type"), if (it.has("tamano_bytes")) it.optLong("tamano_bytes") else null)
+                    it.texto("mime_type"), if (it.has("tamano_bytes")) it.optLong("tamano_bytes") else null,
+                    if (it.has("duracion_ms") && !it.isNull("duracion_ms")) it.optLong("duracion_ms") else null)
             }
             return Mensaje(
                 id = if (o.has("id") && !o.isNull("id")) o.optLong("id") else null,

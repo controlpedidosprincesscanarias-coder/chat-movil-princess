@@ -14,6 +14,8 @@
     <!-- Instalar las actualizaciones descargadas de GitHub -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- (v1.0.16) Grabar mensajes de voz: se pide la primera vez que se pulsa el micrófono -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:name=".ChatApp"
