@@ -6,7 +6,7 @@
   - Un mensaje de voz dura como mucho 3 minutos: al llegar, se envía solo.
   - La primera vez, Android pide permiso para usar el micrófono.
 - **Escuchar:** la burbuja de un mensaje de voz tiene **▶ / ⏸**, una barra de avance y la duración. Solo suena uno a la vez y se para al salir de la conversación. Como cualquier mensaje, se puede reenviar, guardar, compartir o eliminar manteniéndolo pulsado.
-- En el Organizador también se pueden escuchar (v4.18.66).
+- En el Organizador también se pueden escuchar (v4.18.70).
 - Necesita el servicio del chat v1.8.0.
 
 # v1.0.14
