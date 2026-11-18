@@ -4,6 +4,7 @@ package com.princesscanarias.chat
 
 import com.princesscanarias.chat.datos.Canal
 import com.princesscanarias.chat.datos.Fechas
+import com.princesscanarias.chat.datos.Manual
 import com.princesscanarias.chat.datos.Mensaje
 import com.princesscanarias.chat.datos.CuentaAvisos
 import com.princesscanarias.chat.datos.Conversaciones
@@ -197,5 +198,16 @@ class PruebasLogica {
         assertEquals(1f, Voz.avance(20000, 10000), 0.001f)
         assertEquals(0f, Voz.avance(100, null), 0.001f)
         assertTrue(Voz.nombreArchivo(1).endsWith(".m4a"))
+    }
+
+    /** (v1.0.18) Manual de uso: buscador sin tildes ni mayúsculas, todas las palabras, y enlace al PDF público. */
+    @Test fun manualBuscar() {
+        assertEquals(Manual.apartados.size, Manual.buscar("  ").size)
+        assertTrue(Manual.buscar("VOZ").any { it.titulo == "Mensajes de voz" })
+        assertTrue(Manual.buscar("bateria").any { it.titulo.startsWith("Notificaciones") })     // sin tilde
+        assertTrue(Manual.buscar("vaciar chat").all { "vaciar" in Manual.normal(it.titulo + it.lineas) })
+        assertTrue(Manual.buscar("palabraquenoexiste").isEmpty())
+        assertEquals(Manual.apartados.size, Manual.apartados.map { it.titulo }.toSet().size)   // títulos únicos (clave de la lista)
+        assertTrue(Manual.URL_PDF.startsWith("https://github.com/controlpedidosprincesscanarias-coder/organizador-princess/"))
     }
 }
