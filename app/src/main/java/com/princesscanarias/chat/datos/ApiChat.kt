@@ -154,6 +154,16 @@ class ApiChat(
         return Mensaje.deJson(d.getJSONObject("mensaje"))
     }
 
+    /** (v1.0.16, chat v1.8.0) Mensaje de voz (.m4a): el servidor lo guarda como tipo «voz» con su duración. */
+    fun enviarVoz(canalId: String, datos: ByteArray, duracionMs: Long): Mensaje {
+        if (datos.size > 5 * 1024 * 1024) throw ErrorChat("El mensaje de voz es demasiado largo.")
+        val cuerpo = JSONObject().put("canal_id", canalId).put("nombre_archivo", Voz.nombreArchivo(System.currentTimeMillis()))
+            .put("mime_type", Voz.MIME).put("voz", true).put("duracion_ms", duracionMs)
+            .put("contenido_base64", java.util.Base64.getEncoder().encodeToString(datos))
+        val d = peticion("/api/chat/mensajes/archivo", "POST", cuerpo)
+        return Mensaje.deJson(d.getJSONObject("mensaje"))
+    }
+
     /** (v1.0.4) Mi foto de perfil (URL o null). */
     fun miAvatar(): String? = peticion("/api/chat/avatar").texto("avatar")
 

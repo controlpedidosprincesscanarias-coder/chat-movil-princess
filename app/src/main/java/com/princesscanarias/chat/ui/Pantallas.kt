@@ -275,6 +275,13 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
     val camara = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
         if (ok) preparar(uriFoto, "foto_${System.currentTimeMillis()}.jpg")
     }
+    // (v1.0.16) Mensajes de voz: el permiso del micrófono se pide la primera vez que se pulsa 🎤
+    val grabadora = remember { Grabadora(ctx) }
+    var grabando by remember { mutableStateOf<Pair<Long, Boolean>?>(null) }
+    val permisoMicro = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        e.aviso.value = if (ok) "Ya puedes grabar: mantén pulsado el micrófono" else "Sin permiso del micrófono no se pueden grabar mensajes de voz"
+    }
+    DisposableEffect(p.canalId) { onDispose { Reproductor.parar() } }
 
     // (v1.0.6) «Guardar en…»: el selector de Android elige dónde (Descargas, Drive…); no hace falta ningún permiso.
     var guardarEste by remember { mutableStateOf<Mensaje?>(null) }
@@ -292,6 +299,7 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
         responder = { e.respondiendo.value = it },
         reenviar = { e.cargarUsuarios(); reenviarEste = it },
         eliminar = { eliminarEste = it },
+        audio = { m, listo -> e.audioDe(m, listo) },
         nombreDe = { e.chat.nombreDe(it) },
         yo = e.chat.username,
     )
@@ -359,6 +367,10 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
             Text("🔔 Aquí llegan los avisos de Control Pedidos (antes por Telegram). No se puede escribir en esta conversación.",
                 color = Colores.meta, fontSize = 13.sp, modifier = Modifier.fillMaxWidth().background(Colores.caja).padding(14.dp))
         } else Row(Modifier.fillMaxWidth().background(Colores.caja).padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
+          val g = grabando
+          if (g != null) {
+            AvisoGrabando(g.first, g.second, Modifier.weight(1f))     // (v1.0.16) grabando un mensaje de voz
+          } else {
             IconButton({ emoticonos = !emoticonos }) { Text("😊", fontSize = 22.sp) }
             Box {
                 IconButton({ menuAdjuntar = true }) { Icon(Icons.Default.AttachFile, "Adjuntar", tint = Colores.texto) }
@@ -372,9 +384,19 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
             }
             OutlinedTextField(texto, { texto = it }, placeholder = { Text("Escribe un mensaje") }, modifier = Modifier.weight(1f),
                 maxLines = 5, shape = RoundedCornerShape(20.dp))
-            IconButton({ val t = texto.trim(); if (t.isNotEmpty()) { e.enviar(t); texto = ""; emoticonos = false } },
-                enabled = texto.isNotBlank()) {
-                Icon(Icons.AutoMirrored.Filled.Send, "Enviar", tint = if (texto.isNotBlank()) Colores.propio else Colores.meta)
+          }
+            // (v1.0.16) Con la caja vacía, el micrófono (mantener pulsado); con texto, Enviar
+            if (texto.isBlank()) {
+                Spacer(Modifier.width(4.dp))
+                BotonMicrofono(grabadora,
+                    tienePermiso = { androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.RECORD_AUDIO) ==
+                        android.content.pm.PackageManager.PERMISSION_GRANTED },
+                    pedirPermiso = { permisoMicro.launch(android.Manifest.permission.RECORD_AUDIO) },
+                    alCambiar = { grabando = it },
+                    alTerminar = { f, ms -> e.enviarVoz(f, ms) },
+                    alAvisar = { e.aviso.value = it })
+            } else IconButton({ val t = texto.trim(); if (t.isNotEmpty()) { e.enviar(t); texto = ""; emoticonos = false } }) {
+                Icon(Icons.AutoMirrored.Filled.Send, "Enviar", tint = Colores.propio)
             }
         }
     }
@@ -530,7 +552,8 @@ private fun InfoGrupo(e: EstadoApp, d: DetalleGrupo) {
 
 /** (v1.0.8) Texto corto de un mensaje para la barra «Respondiendo a…». */
 private fun textoCita(m: Mensaje): String =
-    m.adjunto?.let { (if (m.esImagen) "📷 " else "📎 ") + it.nombre } ?: m.contenido.replace('\n', ' ')
+    if (m.esVoz) "🎤 Mensaje de voz (${com.princesscanarias.chat.datos.Voz.textoDuracion(m.adjunto?.duracionMs)})"
+    else m.adjunto?.let { (if (m.esImagen) "📷 " else "📎 ") + it.nombre } ?: m.contenido.replace('\n', ' ')
 
 /** (v1.0.6) Lo que se puede hacer con un mensaje al mantenerlo pulsado. */
 private class AccionesMensaje(
@@ -542,6 +565,7 @@ private class AccionesMensaje(
     val responder: (Mensaje) -> Unit = {},
     val reenviar: (Mensaje) -> Unit = {},
     val eliminar: (Mensaje) -> Unit = {},
+    val audio: (Mensaje, (java.io.File?) -> Unit) -> Unit = { _, listo -> listo(null) },   // (v1.0.16) mensajes de voz
     val nombreDe: (String) -> String = { it },
     val yo: String = "",
 )
@@ -567,7 +591,7 @@ private fun BurbujaSola(m: Mensaje, propio: Boolean, quien: String, mostrarNombr
             Column(Modifier.widthIn(max = 300.dp)
                 .background(if (propio) Colores.propio else Colores.ajeno, RoundedCornerShape(14.dp))
                 // (v1.0.6) Un toque abre el adjunto; mantener pulsado abre el menú (copiar, compartir, guardar)
-                .combinedClickable(onClick = { if (m.adjunto != null) acciones.abrir(m) },
+                .combinedClickable(onClick = { if (m.adjunto != null && !m.esVoz) acciones.abrir(m) },
                     onLongClick = { if (!m.eliminado) menu = true })
                 .padding(horizontal = 12.dp, vertical = 8.dp)) {
                 // (v1.0.8) «↪ Reenviado» y la cita del mensaje al que responde
@@ -588,6 +612,8 @@ private fun BurbujaSola(m: Mensaje, propio: Boolean, quien: String, mostrarNombr
                 }
                 if (m.eliminado) {
                     Text(m.contenido, color = Colores.texto.copy(alpha = 0.6f), fontSize = 15.sp, fontStyle = FontStyle.Italic)
+                } else if (m.esVoz) {
+                    BurbujaVoz(m, acciones.audio)        // (v1.0.16) mensaje de voz: se escucha aquí mismo
                 } else if (m.adjunto != null) {
                     // (v1.0.6) Las imágenes se ven en miniatura (solo del almacén de adjuntos permitido)
                     if (m.esImagen && Seguridad.urlAdjuntoPermitida(m.adjunto.url)) {

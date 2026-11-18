@@ -12,6 +12,7 @@ import com.princesscanarias.chat.datos.Notas
 import com.princesscanarias.chat.datos.Reenvio
 import com.princesscanarias.chat.datos.Usuario
 import com.princesscanarias.chat.datos.Seguridad
+import com.princesscanarias.chat.datos.Voz
 import com.princesscanarias.chat.ui.Emoticonos
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -168,5 +169,33 @@ class PruebasLogica {
         val c = Canal.deJson(JSONObject("""{"canal_id":"dm:ana:beto","tipo":"privado","otro_usuario":"beto","otro_estado":"no_existe"}"""))
         assertEquals("no_existe", c.otroEstado)
         assertEquals(null, Canal.deJson(JSONObject("""{"canal_id":"general","tipo":"general"}""")).otroEstado)
+    }
+
+    /** (v1.0.16, chat v1.8.0) Mensajes de voz: tipo «voz» con duración; los demás adjuntos, sin duración. */
+    @Test fun mensajeDeVoz() {
+        val m = Mensaje.deJson(JSONObject("""{"id":7,"canal_id":"dm:ana:beto","remitente":"ana","contenido":"🎤 Mensaje de voz (0:12)",
+            "tipo":"voz","adjunto":{"url":"https://x.supabase.co/a/voz.m4a","nombre_archivo":"voz.m4a","mime_type":"audio/mp4",
+            "tamano_bytes":2000,"duracion_ms":12400}}"""))
+        assertTrue(m.esVoz)
+        assertFalse(m.esImagen)
+        assertEquals(12400L, m.adjunto?.duracionMs)
+        val a = Mensaje.deJson(JSONObject("""{"id":8,"tipo":"archivo","adjunto":{"url":"https://x.supabase.co/a/n.m4a",
+            "nombre_archivo":"n.m4a","duracion_ms":null}}"""))
+        assertFalse(a.esVoz)                       // un .m4a enviado como archivo no es un mensaje de voz
+        assertNull(a.adjunto?.duracionMs)
+        assertFalse(Mensaje.deJson(JSONObject("""{"id":9,"tipo":"voz"}""")).esVoz)   // sin adjunto, no
+    }
+
+    @Test fun vozDuracionYSoltar() {
+        assertEquals("0:00", Voz.textoDuracion(null))
+        assertEquals("0:12", Voz.textoDuracion(12400))
+        assertEquals("3:00", Voz.textoDuracion(Voz.MAX_MS))
+        assertEquals(Voz.AlSoltar.ENVIAR, Voz.alSoltar(2000, -20f))
+        assertEquals(Voz.AlSoltar.DEMASIADO_CORTO, Voz.alSoltar(300, 0f))
+        assertEquals(Voz.AlSoltar.CANCELADO, Voz.alSoltar(5000, -Voz.CANCELAR_DP - 1))
+        assertEquals(0.5f, Voz.avance(5000, 10000), 0.001f)
+        assertEquals(1f, Voz.avance(20000, 10000), 0.001f)
+        assertEquals(0f, Voz.avance(100, null), 0.001f)
+        assertTrue(Voz.nombreArchivo(1).endsWith(".m4a"))
     }
 }
