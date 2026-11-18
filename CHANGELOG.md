@@ -1,3 +1,14 @@
+# v1.0.16
+
+- **Mensajes de voz:** con la caja de escribir vacía, junto a ella sale el **🎤**.
+  - **Mantenlo pulsado** para grabar; mientras grabas se ve el tiempo.
+  - **Suelta** para enviar. Para **cancelar**, desliza el dedo a la izquierda antes de soltar.
+  - Un mensaje de voz dura como mucho 3 minutos: al llegar, se envía solo.
+  - La primera vez, Android pide permiso para usar el micrófono.
+- **Escuchar:** la burbuja de un mensaje de voz tiene **▶ / ⏸**, una barra de avance y la duración. Solo suena uno a la vez y se para al salir de la conversación. Como cualquier mensaje, se puede reenviar, guardar, compartir o eliminar manteniéndolo pulsado.
+- En el Organizador también se pueden escuchar (v4.18.66).
+- Necesita el servicio del chat v1.8.0.
+
 # v1.0.14
 
 - **Vaciar un chat:** menú **⋮** de la conversación (o mantener pulsado el chat en la lista) → **🧹 Vaciar chat**. Se borran de tu móvil y de tu Organizador los mensajes que hay ahora; la otra persona los sigue viendo.
