@@ -1,3 +1,18 @@
+# v1.0.18
+
+- **Manual de uso dentro de la app:** en **Ajustes → 📖 Manual de uso** se explica todo lo que se puede hacer:
+  - instalar y actualizar;
+  - conversaciones y grupos;
+  - fotos y documentos;
+  - mensajes de voz;
+  - responder, reenviar y eliminar;
+  - vaciar y eliminar chats;
+  - avisos de Control Pedidos;
+  - notificaciones y ahorro de batería.
+- Cada apartado se abre al tocarlo. Arriba hay un **buscador** (por ejemplo, «voz» o «batería»).
+- Funciona **sin conexión**.
+- Al final, **«📄 Manual completo (PDF)»** abre el manual de usuario con capturas (el chat en el móvil es su capítulo 8). Esto sí necesita conexión.
+
 # v1.0.16
 
 - **Mensajes de voz:** con la caja de escribir vacía, junto a ella sale el **🎤**.
