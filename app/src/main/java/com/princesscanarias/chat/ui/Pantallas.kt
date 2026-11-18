@@ -79,6 +79,7 @@ fun AppChat(e: EstadoApp) {
                 is Pantalla.Conversacion -> PantallaConversacion(e, p)
                 Pantalla.Nueva -> PantallaNueva(e)
                 Pantalla.Ajustes -> PantallaAjustes(e)
+                Pantalla.Manual -> PantallaManual(e)
             }
         }
     }
@@ -729,6 +730,8 @@ fun PantallaAjustes(e: EstadoApp) {
         Cabecera("Ajustes", atras = { e.pantalla.value = Pantalla.Lista })
         Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text("Sesión: ${e.chat.credenciales.nombre ?: ""} (${e.chat.credenciales.usuario ?: ""})", color = Colores.texto)
+            // (v1.0.18) Manual de uso dentro de la app (sin conexión, con buscador y enlace al PDF)
+            Button({ e.pantalla.value = Pantalla.Manual }, modifier = Modifier.fillMaxWidth()) { Text("📖 Manual de uso") }
             HorizontalDivider(color = Colores.caja)
             Text("Mi foto", fontWeight = FontWeight.Bold, color = Colores.dorado)
             Row(verticalAlignment = Alignment.CenterVertically) {
