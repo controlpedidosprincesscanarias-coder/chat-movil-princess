@@ -35,6 +35,9 @@ data class Mensaje(
     /** (v1.0.16, chat v1.8.0) Mensaje de voz: se reproduce en la propia burbuja. */
     val esVoz: Boolean get() = tipo == "voz" && adjunto != null && adjunto.url.isNotBlank()
 
+    /** (v1.0.20) Vídeo adjunto: se reproduce dentro del chat al pulsar (ui/Video.kt). */
+    val esVideo: Boolean get() = adjunto != null && adjunto.url.isNotBlank() && !esVoz && Enlaces.esVideo(adjunto.nombre, adjunto.mime)
+
     /** (v1.0.6) Imagen adjunta: se ve en miniatura en la conversación en vez de solo su nombre. */
     val esImagen: Boolean
         get() {

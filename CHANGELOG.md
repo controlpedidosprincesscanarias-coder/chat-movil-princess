@@ -1,3 +1,11 @@
+# v1.0.20
+
+- **Enlaces y vídeos** (petición de Víctor, 19 nov 2026: «¿se podría poner reproductor de vídeos o vídeos web si se envían?»):
+  - **Los enlaces de los mensajes se pueden pulsar:** se abren en su app (TikTok, YouTube…) o en el navegador.
+  - **Tarjeta de los enlaces de vídeo:** bajo un enlace de TikTok, YouTube o Instagram sale una tarjeta con la miniatura, el sitio, el título y el autor. Al pulsarla se abre el vídeo. La prepara el servidor del chat (v1.9.0); si no puede, la tarjeta sale solo con el nombre del sitio.
+  - **Vídeos enviados como archivo:** se ven en la burbuja con ▶ y se reproducen **dentro del chat al pulsarlos**, nunca solos. El límite sigue en 10 MB.
+- Necesita el servidor del chat v1.9.0 para las tarjetas; con uno anterior, los enlaces se pueden pulsar igual.
+
 # v1.0.18
 
 - **Manual de uso dentro de la app:** en **Ajustes → 📖 Manual de uso** se explica todo lo que se puede hacer:

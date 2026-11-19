@@ -165,6 +165,11 @@ class ApiChat(
     }
 
     /** (v1.0.4) Mi foto de perfil (URL o null). */
+    /** (v1.0.20, chat v1.9.0) Tarjeta de un enlace de vídeo, o null si el servidor no la da (versión anterior, otro sitio…). */
+    fun vistaPrevia(url: String): TarjetaEnlace? = try {
+        peticion("/api/chat/vista-previa?url=" + java.net.URLEncoder.encode(url, "UTF-8")).optJSONObject("tarjeta")?.let { TarjetaEnlace.deJson(it) }
+    } catch (e: ErrorChat) { null }
+
     fun miAvatar(): String? = peticion("/api/chat/avatar").texto("avatar")
 
     /** Pone (o, con datos null, quita) la foto propia o, con canalId, la de un grupo. Devuelve la URL nueva. */
