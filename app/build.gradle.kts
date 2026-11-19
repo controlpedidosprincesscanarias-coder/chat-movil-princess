@@ -24,8 +24,8 @@ android {
         applicationId = "com.princesscanarias.chat"
         minSdk = 26
         targetSdk = 35
-        versionCode = 118       // ← subir en cada versión (1.0.0 → 100, 1.0.2 → 102…)
-        versionName = "1.0.18"  // ← debe coincidir con la etiqueta de la Release (v + versionName)
+        versionCode = 120       // ← subir en cada versión (1.0.0 → 100, 1.0.2 → 102…)
+        versionName = "1.0.20"  // ← debe coincidir con la etiqueta de la Release (v + versionName)
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -89,6 +89,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("androidx.exifinterface:exifinterface:1.3.7")
     implementation("io.coil-kt:coil-compose:2.7.0")      // (v1.0.4) fotos de perfil
+    implementation("androidx.media3:media3-exoplayer:1.4.1")   // (v1.0.18) vídeos adjuntos dentro del chat
+    implementation("androidx.media3:media3-ui:1.4.1")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")       // org.json real para las pruebas en la JVM

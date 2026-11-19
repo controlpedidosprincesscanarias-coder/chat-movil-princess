@@ -4,6 +4,7 @@ package com.princesscanarias.chat.ui
 
 import android.app.Application
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,6 +16,7 @@ import com.princesscanarias.chat.datos.Conversaciones
 import com.princesscanarias.chat.datos.DetalleGrupo
 import com.princesscanarias.chat.datos.ErrorChat
 import com.princesscanarias.chat.datos.Mensaje
+import com.princesscanarias.chat.datos.TarjetaEnlace
 import com.princesscanarias.chat.datos.Usuario
 import com.princesscanarias.chat.datos.VersionNueva
 import com.princesscanarias.chat.servicio.Avisos
@@ -31,7 +33,7 @@ sealed class Pantalla {
     data class Conversacion(val canalId: String?, val destinatario: String?, val titulo: String) : Pantalla()
     data object Nueva : Pantalla()
     data object Ajustes : Pantalla()
-    data object Manual : Pantalla()        // (v1.0.18) manual de uso
+    data object Manual : Pantalla()        // (v1.0.20) manual de uso
 }
 
 /** Estado de la interfaz: qué pantalla se ve, conversaciones, mensajes abiertos y avisos. */
@@ -321,6 +323,21 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
                 listo(f)
             } catch (e: Exception) {
                 f.delete(); aviso.value = e.message ?: "No se pudo descargar el mensaje de voz"; listo(null)
+            }
+        }
+    }
+
+    /** (v1.0.20) Tarjetas de enlaces de vídeo ya pedidas (url → tarjeta; null = sin tarjeta). Una petición por enlace. */
+    val tarjetas = mutableStateMapOf<String, TarjetaEnlace?>()
+    private val tarjetasPedidas = mutableSetOf<String>()
+
+    fun pedirTarjeta(url: String) {
+        if (!tarjetasPedidas.add(url)) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val t = try { chat.api.vistaPrevia(url) } catch (e: Exception) { null }
+            withContext(Dispatchers.Main) {
+                tarjetas[url] = t
+                if (t == null) tarjetasPedidas.remove(url)       // se reintenta la próxima vez que se vea
             }
         }
     }

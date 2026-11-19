@@ -62,6 +62,8 @@ import com.princesscanarias.chat.datos.DetalleGrupo
 import com.princesscanarias.chat.datos.Notas
 import com.princesscanarias.chat.datos.Reenvio
 import com.princesscanarias.chat.datos.Seguridad
+import com.princesscanarias.chat.datos.Enlaces
+import com.princesscanarias.chat.datos.TarjetaEnlace
 import coil.compose.AsyncImage
 
 @Composable
@@ -303,6 +305,8 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
         audio = { m, listo -> e.audioDe(m, listo) },
         nombreDe = { e.chat.nombreDe(it) },
         yo = e.chat.username,
+        tarjetas = e.tarjetas,
+        pedirTarjeta = { e.pedirTarjeta(it) },
     )
 
     // (v1.0.14) Si no se pudo enviar (el otro no está), el texto vuelve a la caja de escribir
@@ -554,7 +558,7 @@ private fun InfoGrupo(e: EstadoApp, d: DetalleGrupo) {
 /** (v1.0.8) Texto corto de un mensaje para la barra «Respondiendo a…». */
 private fun textoCita(m: Mensaje): String =
     if (m.esVoz) "🎤 Mensaje de voz (${com.princesscanarias.chat.datos.Voz.textoDuracion(m.adjunto?.duracionMs)})"
-    else m.adjunto?.let { (if (m.esImagen) "📷 " else "📎 ") + it.nombre } ?: m.contenido.replace('\n', ' ')
+    else m.adjunto?.let { (if (m.esImagen) "📷 " else if (m.esVideo) "🎬 " else "📎 ") + it.nombre } ?: m.contenido.replace('\n', ' ')
 
 /** (v1.0.6) Lo que se puede hacer con un mensaje al mantenerlo pulsado. */
 private class AccionesMensaje(
@@ -569,6 +573,9 @@ private class AccionesMensaje(
     val audio: (Mensaje, (java.io.File?) -> Unit) -> Unit = { _, listo -> listo(null) },   // (v1.0.16) mensajes de voz
     val nombreDe: (String) -> String = { it },
     val yo: String = "",
+    // (v1.0.20, chat v1.9.0) tarjetas de los enlaces de vídeo
+    val tarjetas: Map<String, TarjetaEnlace?> = emptyMap(),
+    val pedirTarjeta: (String) -> Unit = {},
 )
 
 @Composable
@@ -592,7 +599,8 @@ private fun BurbujaSola(m: Mensaje, propio: Boolean, quien: String, mostrarNombr
             Column(Modifier.widthIn(max = 300.dp)
                 .background(if (propio) Colores.propio else Colores.ajeno, RoundedCornerShape(14.dp))
                 // (v1.0.6) Un toque abre el adjunto; mantener pulsado abre el menú (copiar, compartir, guardar)
-                .combinedClickable(onClick = { if (m.adjunto != null && !m.esVoz) acciones.abrir(m) },
+                // (v1.0.20) El vídeo se ve con su propio reproductor (BurbujaVideo)
+                .combinedClickable(onClick = { if (m.adjunto != null && !m.esVoz && !m.esVideo) acciones.abrir(m) },
                     onLongClick = { if (!m.eliminado) menu = true })
                 .padding(horizontal = 12.dp, vertical = 8.dp)) {
                 // (v1.0.8) «↪ Reenviado» y la cita del mensaje al que responde
@@ -615,6 +623,8 @@ private fun BurbujaSola(m: Mensaje, propio: Boolean, quien: String, mostrarNombr
                     Text(m.contenido, color = Colores.texto.copy(alpha = 0.6f), fontSize = 15.sp, fontStyle = FontStyle.Italic)
                 } else if (m.esVoz) {
                     BurbujaVoz(m, acciones.audio)        // (v1.0.16) mensaje de voz: se escucha aquí mismo
+                } else if (m.esVideo) {
+                    BurbujaVideo(m, tamanoLegible(m.adjunto?.tamano))   // (v1.0.20) se reproduce aquí al pulsar
                 } else if (m.adjunto != null) {
                     // (v1.0.6) Las imágenes se ven en miniatura (solo del almacén de adjuntos permitido)
                     if (m.esImagen && Seguridad.urlAdjuntoPermitida(m.adjunto.url)) {
@@ -630,7 +640,11 @@ private fun BurbujaSola(m: Mensaje, propio: Boolean, quien: String, mostrarNombr
                             style = LocalTextStyle.current.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
                     }
                 } else {
-                    Text(m.contenido, color = Colores.texto, fontSize = 15.sp)
+                    // (v1.0.20) enlaces pulsables y, si hay uno de vídeo, su tarjeta
+                    TextoConEnlaces(m.contenido, Colores.texto)
+                    Enlaces.primerVideo(m.contenido)?.let { url ->
+                        TarjetaVideoWeb(url, acciones.tarjetas[url], acciones.pedirTarjeta)
+                    }
                 }
                 Text(Fechas.corta(m.creadoEn), fontSize = 10.sp, color = Colores.texto.copy(alpha = 0.7f), modifier = Modifier.align(Alignment.End))
             }
@@ -730,7 +744,7 @@ fun PantallaAjustes(e: EstadoApp) {
         Cabecera("Ajustes", atras = { e.pantalla.value = Pantalla.Lista })
         Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text("Sesión: ${e.chat.credenciales.nombre ?: ""} (${e.chat.credenciales.usuario ?: ""})", color = Colores.texto)
-            // (v1.0.18) Manual de uso dentro de la app (sin conexión, con buscador y enlace al PDF)
+            // (v1.0.20) Manual de uso dentro de la app (sin conexión, con buscador y enlace al PDF)
             Button({ e.pantalla.value = Pantalla.Manual }, modifier = Modifier.fillMaxWidth()) { Text("📖 Manual de uso") }
             HorizontalDivider(color = Colores.caja)
             Text("Mi foto", fontWeight = FontWeight.Bold, color = Colores.dorado)

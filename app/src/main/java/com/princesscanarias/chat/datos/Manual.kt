@@ -37,6 +37,11 @@ object Manual {
             "📎 → «Hacer una foto», «Foto de la galería» o «Documento». Antes de enviar se ve lo que vas a mandar; hasta 10 MB por archivo.",
             "Un toque en una foto o un documento recibido lo abre. Manteniéndolo pulsado: «Abrir», «Guardar en…» (elige la carpeta) o «Compartir» con otra app.",
         )),
+        Apartado("🎬", "Enlaces y vídeos", listOf(
+            "Los enlaces de los mensajes salen subrayados: púlsalos y se abren en su app (TikTok, YouTube…) o en el navegador.",
+            "Bajo un enlace de TikTok, YouTube o Instagram sale una tarjeta con la imagen del vídeo, el título y el autor. Púlsala para verlo.",
+            "Los vídeos enviados como archivo (📎 → «Documento») salen con ▶: púlsalo y se ven aquí mismo, a pantalla completa; ✕ lo cierra. Nunca empiezan solos. Hasta 10 MB por archivo.",
+        )),
         Apartado("🎤", "Mensajes de voz", listOf(
             "Con la caja de escribir vacía, a su derecha aparece el 🎤 (si escribes algo, cambia por el botón de enviar).",
             "Mantén pulsado el 🎤 y habla: se ve 🔴 y el tiempo que llevas. Suelta para enviarlo.",

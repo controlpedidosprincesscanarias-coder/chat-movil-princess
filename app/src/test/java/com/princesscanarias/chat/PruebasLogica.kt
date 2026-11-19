@@ -3,6 +3,8 @@
 package com.princesscanarias.chat
 
 import com.princesscanarias.chat.datos.Canal
+import com.princesscanarias.chat.datos.Enlaces
+import com.princesscanarias.chat.datos.TarjetaEnlace
 import com.princesscanarias.chat.datos.Fechas
 import com.princesscanarias.chat.datos.Manual
 import com.princesscanarias.chat.datos.Mensaje
@@ -209,5 +211,42 @@ class PruebasLogica {
         assertTrue(Manual.buscar("palabraquenoexiste").isEmpty())
         assertEquals(Manual.apartados.size, Manual.apartados.map { it.titulo }.toSet().size)   // títulos únicos (clave de la lista)
         assertTrue(Manual.URL_PDF.startsWith("https://github.com/controlpedidosprincesscanarias-coder/organizador-princess/"))
+    }
+
+    // (v1.0.20, chat v1.9.0) Enlaces pulsables, tarjeta de los de vídeo y vídeos adjuntos
+    @Test fun enlacesEnElTexto() {
+        val t = Enlaces.trozos("Mira https://vm.tiktok.com/ZNdemo/. Y esto: http://ejemplo.es/a?b=1) fin")
+        assertEquals(listOf("Mira ", "https://vm.tiktok.com/ZNdemo/", ". Y esto: ", "http://ejemplo.es/a?b=1", ") fin"), t.map { it.texto })
+        assertEquals(listOf(null, "https://vm.tiktok.com/ZNdemo/", null, "http://ejemplo.es/a?b=1", null), t.map { it.url })
+        assertEquals(listOf(Enlaces.Trozo("sin enlaces")), Enlaces.trozos("sin enlaces"))
+        assertTrue(Enlaces.trozos("javascript:alert(1) ftp://x.es/a").all { it.url == null })
+    }
+
+    @Test fun enlacesDeVideo() {
+        assertEquals("tiktok", Enlaces.sitioDeVideo("https://vm.tiktok.com/ZNdemo/"))
+        assertEquals("youtube", Enlaces.sitioDeVideo("https://youtu.be/abc"))
+        assertEquals("youtube", Enlaces.sitioDeVideo("https://m.youtube.com/watch?v=abc"))
+        assertEquals("instagram", Enlaces.sitioDeVideo("https://www.instagram.com/reel/abc/"))
+        assertNull(Enlaces.sitioDeVideo("http://www.tiktok.com/@a/video/1"))         // solo https
+        assertNull(Enlaces.sitioDeVideo("https://tiktok.com.malo.example/x"))
+        assertNull(Enlaces.sitioDeVideo("https://eviltiktok.com/x"))
+        assertEquals("https://youtu.be/abc", Enlaces.primerVideo("Hola https://ejemplo.es y https://youtu.be/abc, https://vm.tiktok.com/x"))
+        assertNull(Enlaces.primerVideo("Hola https://ejemplo.es"))
+    }
+
+    @Test fun tarjetaYVideosAdjuntos() {
+        val t = TarjetaEnlace.deJson(JSONObject("""{"url":"https://youtu.be/abc","proveedor":"youtube","sitio":"YouTube",
+            "titulo":"Demo","autor":"Canal demo","miniatura":"data:image/jpeg;base64,/9j/4A=="}"""))
+        assertEquals("YouTube", t.sitio)
+        assertEquals(listOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xE0.toByte()), t.bytesMiniatura()!!.toList())
+        assertNull(TarjetaEnlace.deJson(JSONObject("""{"url":"u","miniatura":null}""")).bytesMiniatura())
+        assertNull(t.copy(miniatura = "https://otro.sitio/a.jpg").bytesMiniatura())   // solo data:image
+        assertTrue(Enlaces.esVideo("viaje.MP4", null))
+        assertTrue(Enlaces.esVideo("clip", "video/quicktime"))
+        assertFalse(Enlaces.esVideo("foto.jpg", "image/jpeg"))
+        val m = Mensaje.deJson(JSONObject("""{"id":1,"canal_id":"c","remitente":"ana","contenido":"📎 a.mp4","tipo":"archivo",
+            "adjunto":{"url":"https://demo.supabase.co/a.mp4","nombre_archivo":"a.mp4","mime_type":"video/mp4"}}"""))
+        assertTrue(m.esVideo)
+        assertFalse(m.esImagen)
     }
 }
