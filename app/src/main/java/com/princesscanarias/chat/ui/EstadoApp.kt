@@ -33,7 +33,7 @@ sealed class Pantalla {
     data class Conversacion(val canalId: String?, val destinatario: String?, val titulo: String) : Pantalla()
     data object Nueva : Pantalla()
     data object Ajustes : Pantalla()
-    data object Manual : Pantalla()        // (v1.0.20) manual de uso
+    data object Manual : Pantalla()        // (v1.0.18) manual de uso
 }
 
 /** Estado de la interfaz: qué pantalla se ve, conversaciones, mensajes abiertos y avisos. */

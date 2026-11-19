@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.princesscanarias.chat.datos.Manual
 
-/** (v1.0.20) Ajustes → 📖 Manual de uso: apartados que se abren y cierran, buscador y enlace al PDF completo. */
+/** (v1.0.18) Ajustes → 📖 Manual de uso: apartados que se abren y cierran, buscador y enlace al PDF completo. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaManual(e: EstadoApp) {
