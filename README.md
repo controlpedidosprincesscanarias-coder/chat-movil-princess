@@ -2,7 +2,7 @@
 
 > **Autoría:** la idea y el desarrollo de la aplicación, incluidas sus pruebas, son de **Víctor Alejandro Martín Andrade**, para el Departamento de Central de Compras de Princess Hotels en Canarias. Ver `AUTORIA.md`.
 
-**Versión actual: v1.0.20**
+**Versión actual: v1.0.22**
 
 El chat de Control de Pedidos en el móvil. Es el mismo chat que el del Organizador de escritorio: las mismas conversaciones, el mismo servidor y la misma cuenta. Se puede estar conectado a la vez en el PC y en el móvil.
 
@@ -21,6 +21,10 @@ El chat de Control de Pedidos en el móvil. Es el mismo chat que el del Organiza
 
 **Actualizaciones:** la app las busca sola al abrirse; también se pueden buscar desde Ajustes → «Buscar actualización». Descarga la versión nueva, comprueba que es la publicada (SHA-256) y abre el instalador.
 
+**Sonidos** (v1.0.22): en Ajustes, el sonido general; en el menú ⋮ de cada conversación, «🔔 Sonido de este chat» (tono, silencio o como el general). Solo en ese móvil.
+
+**Orden de la lista** (v1.0.22): General y «Control Pedidos» fijos arriba; debajo, la última conversación utilizada primero.
+
 **Cerrar sesión** (Ajustes) borra el usuario y la contraseña guardados en el móvil y deja de recibir avisos.
 
 ## Cómo funciona
@@ -31,6 +35,7 @@ El chat de Control de Pedidos en el móvil. Es el mismo chat que el del Organiza
 | `datos/Chat.kt` | Conexión en tiempo real (Socket.IO, eventos `nuevo_mensaje`, `error_chat` y `unirse_canal`), caché de nombres y estado de la conexión. |
 | `datos/Credenciales.kt` | Usuario y contraseña cifrados en el propio móvil (Android Keystore). |
 | `servicio/ServicioChat.kt` | Servicio en marcha que mantiene la conexión con la app cerrada y avisa de cada mensaje de otra persona. |
+| `servicio/SonidosCanales.kt`, `datos/Sonidos.kt` | (v1.0.22) Sonido general y de cada chat: un canal de notificación de Android por sonido (al cambiarlo se crea otro y se borra el anterior). En `datos/Sonidos.kt` también el orden de la lista (`OrdenConversaciones`). |
 | `servicio/AlArrancar.kt` | Vuelve a conectar al encender el móvil o tras actualizar la app. |
 | `datos/Actualizaciones.kt` | Busca la última Release publicada, descarga la `.apk`, comprueba el SHA-256 y abre el instalador. |
 | `ui/` | Pantallas (Jetpack Compose): acceso, conversaciones, chat con emoticonos y adjuntos, nueva conversación y ajustes. |

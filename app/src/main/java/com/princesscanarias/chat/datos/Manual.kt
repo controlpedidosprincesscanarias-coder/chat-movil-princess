@@ -25,6 +25,7 @@ object Manual {
         )),
         Apartado("💬", "Conversaciones y grupos", listOf(
             "La lista muestra el chat General, tus chats privados y los grupos. El número junto al nombre son los mensajes sin leer.",
+            "Arriba, siempre fijos, el General y «Control Pedidos». Debajo, las demás conversaciones: la última que has usado (con un mensaje enviado o recibido, o al abrirla) va la primera.",
             "«Nueva conversación» (abajo): elige un compañero para un chat privado, o varios para crear un grupo; te pide un nombre para el grupo.",
             "En un grupo, pulsa su nombre arriba para ver quién está. Quien lo creó puede añadir y quitar compañeros, renombrarlo o eliminarlo; cualquiera puede salir del grupo.",
             "El botón de actualizar (arriba) vuelve a cargar la lista.",
@@ -69,6 +70,12 @@ object Manual {
             "En la conversación «Control Pedidos» te llegan tus avisos (pedidos sin entregar, cambios de estado, techo de gastos…), con su notificación.",
             "En ella no se puede escribir. Un aviso se puede reenviar a un compañero (mantener pulsado → «↪ Reenviar…»).",
             "Qué avisos recibe cada persona se decide en Control de Pedidos (Configuración de avisos).",
+        )),
+        Apartado("🔔", "Sonidos de los mensajes", listOf(
+            "Ajustes → Sonidos de los mensajes → «Cambiar»: el sonido general, con el selector de tonos del móvil.",
+            "Para un chat o grupo: menú ⋮ de la conversación (o mantenerla pulsada en la lista) → «🔔 Sonido de este chat»: «Elegir tono…», «🔕 Silencio» o «Como el general».",
+            "En Ajustes se ven los chats con sonido propio: «Quitar» lo devuelve al general y «↺ Todos con el general» los quita todos.",
+            "Se guarda solo en este móvil. En el Organizador los sonidos se eligen aparte.",
         )),
         Apartado("📲", "Notificaciones y ahorro de batería", listOf(
             "Acepta las notificaciones para enterarte de los mensajes con la app cerrada.",

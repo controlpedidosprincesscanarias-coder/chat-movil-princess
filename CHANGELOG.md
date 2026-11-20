@@ -1,3 +1,14 @@
+# v1.0.22
+
+- **Sonidos de los mensajes** (petición de Víctor, 20 nov 2026: «que se pueda cambiar el sonido de los mensajes, pudiendo elegir diferentes según el chat o grupo»):
+  - En **Ajustes → Sonidos de los mensajes**, el **sonido general**, con el selector de tonos del propio móvil.
+  - Para un chat o grupo: menú **⋮** de la conversación (o mantenerla pulsada en la lista) → **«🔔 Sonido de este chat»**: «Elegir tono…», «🔕 Silencio» o «Como el general».
+  - En Ajustes se ven los chats con sonido propio, con «Quitar» y «↺ Todos con el general».
+  - Cada persona elige los suyos y se guardan **solo en este móvil**. En el Organizador se eligen aparte.
+  - Sin cambiar nada, todo suena como antes (el tono de notificación del móvil).
+- **Orden de las conversaciones** (petición de Víctor, 20 nov 2026): el **General** y **«Control Pedidos»** quedan **fijos arriba**. Debajo, las demás, con la **última utilizada la primera** (un mensaje enviado o recibido, o abrirla en el móvil).
+- El manual de la app (Ajustes → 📖 Manual de uso) explica las dos cosas.
+
 # v1.0.20
 
 - **Enlaces y vídeos** (petición de Víctor, 19 nov 2026: «¿se podría poner reproductor de vídeos o vídeos web si se envían?»):

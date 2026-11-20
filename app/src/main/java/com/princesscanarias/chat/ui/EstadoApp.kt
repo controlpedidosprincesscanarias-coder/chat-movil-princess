@@ -16,6 +16,7 @@ import com.princesscanarias.chat.datos.Conversaciones
 import com.princesscanarias.chat.datos.DetalleGrupo
 import com.princesscanarias.chat.datos.ErrorChat
 import com.princesscanarias.chat.datos.Mensaje
+import com.princesscanarias.chat.datos.OrdenConversaciones
 import com.princesscanarias.chat.datos.TarjetaEnlace
 import com.princesscanarias.chat.datos.Usuario
 import com.princesscanarias.chat.datos.VersionNueva
@@ -58,6 +59,8 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
     /** (v1.0.14) Texto que no se pudo enviar: vuelve a la caja de escribir para no perderlo. */
     val borradorDevuelto = mutableStateOf<String?>(null)
     private var canalAbierto: String? = null
+    /** (v1.0.22) Cuándo se abrió por última vez cada conversación en este móvil (para el orden de la lista). */
+    private val usadas = app.getSharedPreferences("conversaciones_usadas", android.content.Context.MODE_PRIVATE)
     private var buscadaActualizacion = false
     private var refresco: Job? = null
 
@@ -122,6 +125,7 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
 
     fun salir() {
         ServicioChat.parar(getApplication())
+        usadas.edit().clear().apply()
         viewModelScope.launch(Dispatchers.IO) { chat.salir() }
         canales.clear(); mensajes.clear()
         pantalla.value = Pantalla.Acceso
@@ -168,7 +172,15 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
 
     fun cargarCanales() = enSegundoPlano({ chat.refrescarNombresSiHaceFalta(); chat.api.canales() }) { lista ->
         canales.clear()
-        canales.addAll(lista.sortedWith(compareBy<Canal> { it.tipo != "general" }.thenByDescending { it.ultimoCreadoEn ?: "" }))
+        // (v1.0.22, petición de Víctor) General y Control Pedidos fijos arriba; debajo, la última utilizada primero
+        canales.addAll(OrdenConversaciones.ordenar(lista, abiertas()))
+    }
+
+    private fun abiertas(): Map<String, Long> =
+        usadas.all.mapNotNull { (k, v) -> (v as? Long)?.let { k to it } }.toMap()
+
+    private fun marcarUsada(canal: String?) {
+        if (!canal.isNullOrBlank()) usadas.edit().putLong(canal, System.currentTimeMillis()).apply()
     }
 
     private fun refrescarListaPronto() {
@@ -201,6 +213,7 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
             chat.canalVisible = canal
             chat.unirseCanal(canal)
             Avisos.quitar(getApplication(), canal)
+            marcarUsada(canal)
             if (p.canalId == null) pantalla.value = p.copy(canalId = canal)
             mensajes.clear(); mensajes.addAll(lista)
         }
