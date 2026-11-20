@@ -15,6 +15,8 @@ import com.princesscanarias.chat.datos.Notas
 import com.princesscanarias.chat.datos.Reenvio
 import com.princesscanarias.chat.datos.Usuario
 import com.princesscanarias.chat.datos.Seguridad
+import com.princesscanarias.chat.datos.Sonidos
+import com.princesscanarias.chat.datos.OrdenConversaciones
 import com.princesscanarias.chat.datos.Voz
 import com.princesscanarias.chat.ui.Emoticonos
 import org.json.JSONObject
@@ -248,5 +250,63 @@ class PruebasLogica {
             "adjunto":{"url":"https://demo.supabase.co/a.mp4","nombre_archivo":"a.mp4","mime_type":"video/mp4"}}"""))
         assertTrue(m.esVideo)
         assertFalse(m.esImagen)
+    }
+
+    // ── (v1.0.22) Sonidos de los mensajes ────────────────────────────────────
+    @Test fun sonidoEfectivoDeUnChat() {
+        assertEquals(Sonidos.PREDETERMINADO, Sonidos.efectivo(null, null))            // sin tocar nada: el del móvil
+        assertEquals("content://tono/1", Sonidos.efectivo(null, "content://tono/1"))  // el general
+        assertEquals(Sonidos.SILENCIO, Sonidos.efectivo(Sonidos.SILENCIO, "content://tono/1"))  // el propio manda
+        assertEquals("content://tono/1", Sonidos.efectivo("  ", "content://tono/1"))
+    }
+
+    @Test fun loElegidoEnElSelectorDeTonos() {
+        assertEquals(Sonidos.SILENCIO, Sonidos.desdeSelector(null, false))            // «Ninguno»
+        assertEquals(Sonidos.PREDETERMINADO, Sonidos.desdeSelector("content://settings/system/notification_sound", true))
+        assertEquals("content://media/internal/audio/media/12", Sonidos.desdeSelector("content://media/internal/audio/media/12", false))
+    }
+
+    @Test fun idsDeLosCanalesDeAndroid() {
+        assertEquals("mensajes", Sonidos.idGeneral(0))                // el canal de siempre mientras no se cambie
+        assertEquals("mensajes_v2", Sonidos.idGeneral(2))
+        val a = Sonidos.idChat("grp:7", 1)
+        val b = Sonidos.idChat("grp:7", 2)
+        assertTrue(a != b)                                             // cada cambio, un canal nuevo
+        assertTrue(Regex("[A-Za-z0-9_]+").matches(a))
+        assertTrue(Sonidos.idChat("dm:ana.prueba:luis.prueba", 1) != Sonidos.idChat("dm:ana_prueba:luis_prueba", 1))
+        assertTrue(Sonidos.idChat("dm:" + "x".repeat(200) + ":y", 1).length < 70)
+    }
+
+    // ── (v1.0.22) Orden de la lista de conversaciones ────────────────────────
+    private fun canal(id: String, tipo: String, ultimo: String?) = Canal(id, tipo, null, null, 0, null, ultimo)
+
+    @Test fun generalYControlPedidosFijosArribaYDebajoLaUltimaUsada() {
+        val lista = listOf(
+            canal("dm:ana:luis", "privado", "2026-11-20T09:00:00+00:00"),
+            canal("dm:ana:control-pedidos", "privado", "2026-11-18T08:00:00+00:00"),
+            canal("grp:7", "grupo", "2026-11-20T10:30:00+00:00"),
+            canal("general", "general", "2026-11-01T08:00:00+00:00"),
+            canal("dm:ana:marta", "privado", null),
+        )
+        val orden = OrdenConversaciones.ordenar(lista).map { it.id }
+        assertEquals(listOf("general", "dm:ana:control-pedidos", "grp:7", "dm:ana:luis", "dm:ana:marta"), orden)
+    }
+
+    @Test fun abrirUnaConversacionLaSubeArriba() {
+        val lista = listOf(
+            canal("general", "general", "2026-11-20T11:00:00+00:00"),
+            canal("grp:7", "grupo", "2026-11-20T10:30:00+00:00"),
+            canal("dm:ana:luis", "privado", "2026-11-19T09:00:00+00:00"),
+        )
+        val abierta = java.time.OffsetDateTime.parse("2026-11-20T10:45:00+00:00").toInstant().toEpochMilli()
+        val orden = OrdenConversaciones.ordenar(lista, mapOf("dm:ana:luis" to abierta)).map { it.id }
+        assertEquals(listOf("general", "dm:ana:luis", "grp:7"), orden)    // pero nunca por encima de los fijos
+    }
+
+    @Test fun sinControlPedidosElOrdenSigueIgual() {
+        val orden = OrdenConversaciones.ordenar(listOf(
+            canal("dm:ana:luis", "privado", "2026-11-19T09:00:00+00:00"),
+            canal("general", "general", null))).map { it.id }
+        assertEquals(listOf("general", "dm:ana:luis"), orden)
     }
 }

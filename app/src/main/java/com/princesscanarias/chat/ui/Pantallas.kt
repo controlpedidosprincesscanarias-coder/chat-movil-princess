@@ -63,6 +63,9 @@ import com.princesscanarias.chat.datos.Notas
 import com.princesscanarias.chat.datos.Reenvio
 import com.princesscanarias.chat.datos.Seguridad
 import com.princesscanarias.chat.datos.Enlaces
+import com.princesscanarias.chat.datos.Sonidos
+import com.princesscanarias.chat.servicio.ElegirTono
+import com.princesscanarias.chat.servicio.SonidosCanales
 import com.princesscanarias.chat.datos.TarjetaEnlace
 import coil.compose.AsyncImage
 
@@ -446,12 +449,15 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
 private fun MenuChat(e: EstadoApp, canalId: String, titulo: String, abierto: Boolean, cerrar: () -> Unit) {
     var confirmar by remember { mutableStateOf<String?>(null) }
     DropdownMenu(abierto, cerrar) {
+        // (v1.0.22, petición de Víctor) Sonido propio de esta conversación
+        DropdownMenuItem({ Text("🔔  Sonido de este chat") }, { cerrar(); confirmar = "sonido" })
         if (Conversaciones.puedeVaciar(canalId))
             DropdownMenuItem({ Text("🧹  Vaciar chat") }, { cerrar(); confirmar = "vaciar" })
         if (Conversaciones.puedeEliminar(canalId))
             DropdownMenuItem({ Text("🗑  Eliminar chat", color = Colores.error) }, { cerrar(); confirmar = "eliminar" })
     }
     when (confirmar) {
+        "sonido" -> DialogoSonidoChat(canalId, titulo) { confirmar = null }
         "vaciar" -> AlertDialog(onDismissRequest = { confirmar = null },
             title = { Text("¿Vaciar el chat con «$titulo»?") },
             text = { Text("Se borran de tu móvil y de tu Organizador los mensajes que hay ahora. La otra persona los sigue viendo.") },
@@ -463,6 +469,32 @@ private fun MenuChat(e: EstadoApp, canalId: String, titulo: String, abierto: Boo
             confirmButton = { TextButton({ confirmar = null; e.eliminarChat(canalId) }) { Text("Eliminar", color = Colores.error) } },
             dismissButton = { TextButton({ confirmar = null }) { Text("Cancelar") } })
     }
+}
+
+/** (v1.0.22, petición de Víctor) «🔔 Sonido de este chat»: tono de Android, silencio o como el general. Solo en este móvil. */
+@Composable
+private fun DialogoSonidoChat(canalId: String, titulo: String, cerrar: () -> Unit) {
+    val ctx = LocalContext.current
+    var propio by remember { mutableStateOf(SonidosCanales.propio(ctx, canalId)) }
+    val general = remember { SonidosCanales.general(ctx) }
+    val selector = rememberLauncherForActivityResult(ElegirTono("Sonido de «$titulo»")) { v ->
+        if (v != null) { SonidosCanales.fijarPropio(ctx, canalId, titulo, v); propio = v; SonidosCanales.probar(ctx, v) }
+    }
+    AlertDialog(onDismissRequest = cerrar,
+        title = { Text("🔔 Sonido de «$titulo»") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Ahora: " + (propio?.let { SonidosCanales.nombre(ctx, it) }
+                    ?: "como el general (${SonidosCanales.nombre(ctx, general)})"), color = Colores.texto)
+                OutlinedButton({ selector.launch(propio ?: general) }, Modifier.fillMaxWidth()) { Text("🎵 Elegir tono…") }
+                OutlinedButton({ SonidosCanales.fijarPropio(ctx, canalId, titulo, Sonidos.SILENCIO); propio = Sonidos.SILENCIO },
+                    Modifier.fillMaxWidth(), enabled = propio != Sonidos.SILENCIO) { Text("🔕 Silencio") }
+                OutlinedButton({ SonidosCanales.fijarPropio(ctx, canalId, titulo, null); propio = null },
+                    Modifier.fillMaxWidth(), enabled = propio != null) { Text("Como el general") }
+                Text("Solo en este móvil. En el Organizador se elige aparte.", color = Colores.meta, fontSize = 12.sp)
+            }
+        },
+        confirmButton = { TextButton(cerrar) { Text("Cerrar") } })
 }
 
 /** (v1.0.10) Integrantes del grupo y, para quien lo creó, añadir, quitar, renombrar y eliminar. */
@@ -740,6 +772,12 @@ fun PantallaAjustes(e: EstadoApp) {
     var uriPerfil by remember { mutableStateOf<Uri?>(null) }
     val galeriaPerfil = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { e.cambiarFoto(it) }
     val camaraPerfil = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok -> if (ok) e.cambiarFoto(uriPerfil) }
+    var refrescoSonidos by remember { mutableIntStateOf(0) }
+    val sonidoGeneral = remember(refrescoSonidos) { SonidosCanales.general(ctx) }
+    val sonidosPropios = remember(refrescoSonidos) { SonidosCanales.propios(ctx) }
+    val selectorGeneral = rememberLauncherForActivityResult(ElegirTono("Sonido general de los mensajes")) { v ->
+        if (v != null) { SonidosCanales.fijarGeneral(ctx, v); refrescoSonidos++; SonidosCanales.probar(ctx, v) }
+    }
     Column(Modifier.fillMaxSize()) {
         Cabecera("Ajustes", atras = { e.pantalla.value = Pantalla.Lista })
         Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -760,6 +798,24 @@ fun PantallaAjustes(e: EstadoApp) {
                 }
             }
             Text("La ven tus compañeros en el chat del móvil y del Organizador.", color = Colores.meta, fontSize = 12.sp)
+            HorizontalDivider(color = Colores.caja)
+            // (v1.0.22, petición de Víctor) Sonido general y los de cada chat o grupo, solo en este móvil
+            Text("Sonidos de los mensajes", fontWeight = FontWeight.Bold, color = Colores.dorado)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("General: ${SonidosCanales.nombre(ctx, sonidoGeneral)}", color = Colores.texto, modifier = Modifier.weight(1f))
+                OutlinedButton({ selectorGeneral.launch(sonidoGeneral) }) { Text("Cambiar") }
+            }
+            Text("Para un chat o grupo: menú ⋮ de la conversación (o mantenerla pulsada en la lista) → «🔔 Sonido de este chat».",
+                color = Colores.meta, fontSize = 12.sp)
+            sonidosPropios.forEach { prop ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("${prop.titulo}: ${SonidosCanales.nombre(ctx, prop.valor)}", color = Colores.texto, fontSize = 14.sp,
+                        modifier = Modifier.weight(1f))
+                    TextButton({ SonidosCanales.fijarPropio(ctx, prop.canalId, prop.titulo, null); refrescoSonidos++ }) { Text("Quitar") }
+                }
+            }
+            if (sonidosPropios.isNotEmpty())
+                TextButton({ SonidosCanales.todosConElGeneral(ctx); refrescoSonidos++ }) { Text("↺ Todos con el general") }
             HorizontalDivider(color = Colores.caja)
             Text("Avisos con la app cerrada", fontWeight = FontWeight.Bold, color = Colores.dorado)
             Text("La app mantiene la conexión con un aviso fijo «Chat conectado». Para que el móvil no la corte, quita el ahorro de batería para Chat Dpto. Compras Princess.",

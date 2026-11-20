@@ -19,7 +19,7 @@ import com.princesscanarias.chat.ui.MainActivity
 
 /** Canales de notificación y avisos de mensaje nuevo. */
 object Avisos {
-    const val CANAL_MENSAJES = "mensajes"
+    const val CANAL_MENSAJES = "mensajes"   // canal general mientras no se cambie su sonido (datos/Sonidos.kt)
     const val CANAL_CONEXION = "conexion"
     const val EXTRA_CANAL = "canal_id"
     const val EXTRA_TITULO = "titulo"
@@ -28,10 +28,9 @@ object Avisos {
     fun crearCanales(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = context.getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(NotificationChannel(CANAL_MENSAJES, "Mensajes nuevos", NotificationManager.IMPORTANCE_HIGH).apply {
-            description = "Aviso con sonido cuando te escriben"
-            enableVibration(true)
-        })
+        // (v1.0.22) El canal de los mensajes lleva el sonido general elegido en Ajustes (SonidosCanales); los chats
+        // con sonido propio tienen su canal, que se crea al llegar su primer mensaje.
+        SonidosCanales.canalGeneral(context)
         nm.createNotificationChannel(NotificationChannel(CANAL_CONEXION, "Chat conectado", NotificationManager.IMPORTANCE_MIN).apply {
             description = "Aviso fijo mientras la app mantiene la conexión para recibir los mensajes"
             setShowBadge(false)
@@ -63,7 +62,7 @@ object Avisos {
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
         val texto = m.adjunto?.let { "📎 ${it.nombre}" } ?: m.contenido
         val cuerpo = if (m.canalId.startsWith("dm:")) texto else "$quien: $texto"
-        val n = NotificationCompat.Builder(context, CANAL_MENSAJES)
+        val n = NotificationCompat.Builder(context, SonidosCanales.canalPara(context, m.canalId))   // (v1.0.22) su sonido
             .setSmallIcon(R.drawable.ic_notificacion)
             .setContentTitle(titulo)
             .setContentText(cuerpo)
