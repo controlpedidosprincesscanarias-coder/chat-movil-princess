@@ -42,26 +42,34 @@ object Actualizaciones {
                 if (n.endsWith(".apk.sha256")) sha = a.texto("browser_download_url")
             }
             apk ?: return null
+            // (v1.0.26) Sin su .sha256 o con enlaces que no sean de GitHub, no se ofrece la versión
+            if (sha == null || !Seguridad.urlActualizacionPermitida(sha) ||
+                !Seguridad.urlActualizacionPermitida(apk.optString("browser_download_url"))) return null
             return VersionNueva(tag.removePrefix("v"), o.texto("body") ?: "", apk.optString("browser_download_url"), sha, apk.optLong("size"))
         }
     }
 
     /** Descarga y comprueba la .apk. Devuelve el archivo listo para instalar. */
     fun descargar(context: Context, v: VersionNueva): File {
+        if (!Seguridad.urlActualizacionPermitida(v.urlApk)) throw ErrorChat("La dirección de la actualización no es de GitHub: no se descarga.")
         val dir = File(context.cacheDir, "actualizaciones").apply { mkdirs(); listFiles()?.forEach { it.delete() } }
         val destino = File(dir, "ChatPrincess_${v.version}.apk")
         http.newCall(Request.Builder().url(v.urlApk).header("User-Agent", "ChatPrincessAndroid").build()).execute().use { r ->
             if (!r.isSuccessful) throw ErrorChat("No se pudo descargar la actualización (${r.code})")
             destino.outputStream().use { out -> r.body!!.byteStream().copyTo(out) }
         }
-        v.urlSha256?.let { url ->
-            val esperado = http.newCall(Request.Builder().url(url).header("User-Agent", "ChatPrincessAndroid").build())
-                .execute().use { it.body?.string().orEmpty() }.trim().split(Regex("\\s+")).firstOrNull()?.lowercase()
-            val real = MessageDigest.getInstance("SHA-256").digest(destino.readBytes()).joinToString("") { "%02x".format(it) }
-            if (esperado.isNullOrBlank() || esperado != real) {
-                destino.delete()
-                throw ErrorChat("La descarga no coincide con la publicada (SHA-256). Vuelve a intentarlo.")
-            }
+        // (v1.0.26, auditoría) El SHA-256 es obligatorio: antes, una Release sin .sha256 se instalaba sin comprobar.
+        val url = v.urlSha256
+        if (url == null || !Seguridad.urlActualizacionPermitida(url)) {
+            destino.delete()
+            throw ErrorChat("La actualización no trae su comprobación (SHA-256): no se instala.")
+        }
+        val esperado = http.newCall(Request.Builder().url(url).header("User-Agent", "ChatPrincessAndroid").build())
+            .execute().use { it.body?.string().orEmpty() }.trim().split(Regex("\\s+")).firstOrNull()?.lowercase()
+        val real = MessageDigest.getInstance("SHA-256").digest(destino.readBytes()).joinToString("") { "%02x".format(it) }
+        if (esperado.isNullOrBlank() || esperado != real) {
+            destino.delete()
+            throw ErrorChat("La descarga no coincide con la publicada (SHA-256). Vuelve a intentarlo.")
         }
         return destino
     }
