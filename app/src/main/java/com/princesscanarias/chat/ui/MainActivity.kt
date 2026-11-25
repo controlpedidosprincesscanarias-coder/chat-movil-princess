@@ -11,6 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import com.princesscanarias.chat.datos.Chat
+import com.princesscanarias.chat.datos.Seguridad
 import com.princesscanarias.chat.servicio.Avisos
 import com.princesscanarias.chat.servicio.ServicioChat
 
@@ -33,8 +34,11 @@ class MainActivity : ComponentActivity() {
     /** Al tocar el aviso de un mensaje se abre esa conversación. */
     private fun abrirDesdeAviso(intent: Intent?) {
         val canal = intent?.getStringExtra(Avisos.EXTRA_CANAL) ?: return
-        estado.abrirConversacion(canal, null, intent.getStringExtra(Avisos.EXTRA_TITULO) ?: "Chat")
         intent.removeExtra(Avisos.EXTRA_CANAL)
+        // (v1.0.26, auditoría) Solo los avisos de esta app (llevan su clave) abren una conversación
+        if (intent.getStringExtra(Avisos.EXTRA_CLAVE) != Avisos.clave(this) || !Seguridad.canalValido(canal)) return
+        val titulo = intent.getStringExtra(Avisos.EXTRA_TITULO)?.take(80)?.ifBlank { null } ?: "Chat"
+        estado.abrirConversacion(canal, null, titulo)
     }
 
     override fun onResume() {
