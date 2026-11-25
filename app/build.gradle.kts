@@ -24,8 +24,8 @@ android {
         applicationId = "com.princesscanarias.chat"
         minSdk = 26
         targetSdk = 35
-        versionCode = 124       // ← subir en cada versión (1.0.0 → 100, 1.0.2 → 102…)
-        versionName = "1.0.24"  // ← debe coincidir con la etiqueta de la Release (v + versionName)
+        versionCode = 126       // ← subir en cada versión (1.0.0 → 100, 1.0.2 → 102…)
+        versionName = "1.0.26"  // ← debe coincidir con la etiqueta de la Release (v + versionName)
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

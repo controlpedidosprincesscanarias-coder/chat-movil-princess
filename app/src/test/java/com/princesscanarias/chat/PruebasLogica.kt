@@ -334,4 +334,36 @@ class PruebasLogica {
         assertEquals("No se pudo entrar", Errores.legible(IllegalArgumentException("boom"), "No se pudo entrar"))
         assertEquals(Errores.SIN_RESPUESTA, Errores.legible(null))
     }
+
+    // ── (v1.0.26) Auditoría de seguridad ─────────────────────────────────────
+    @Test fun lasAppsDeAndroidNoSeAbrenDesdeElChat() {
+        assertTrue(Seguridad.esAppAndroid("juego.apk", null))
+        assertTrue(Seguridad.esAppAndroid("Factura.APK", "application/pdf"))
+        assertTrue(Seguridad.esAppAndroid("factura.apk.pdf", null))         // doble extensión
+        assertTrue(Seguridad.esAppAndroid("app.xapk", null))
+        assertTrue(Seguridad.esAppAndroid("sin_extension", "application/vnd.android.package-archive"))
+        assertFalse(Seguridad.esAppAndroid("pedido.pdf", "application/pdf"))
+        assertFalse(Seguridad.esAppAndroid("foto.jpg", "image/jpeg"))
+        assertFalse(Seguridad.esAppAndroid("apk", null))                    // sin punto: es solo un nombre
+    }
+
+    @Test fun lasActualizacionesSoloDeGitHubPorHttps() {
+        assertTrue(Seguridad.urlActualizacionPermitida("https://github.com/x/y/releases/download/v1.0.26/a.apk"))
+        assertTrue(Seguridad.urlActualizacionPermitida("https://objects.githubusercontent.com/a.apk"))
+        assertFalse(Seguridad.urlActualizacionPermitida("http://github.com/a.apk"))
+        assertFalse(Seguridad.urlActualizacionPermitida("https://github.com.ejemplo.dev/a.apk"))
+        assertFalse(Seguridad.urlActualizacionPermitida("https://ejemplo.dev/github.com/a.apk"))
+        assertFalse(Seguridad.urlActualizacionPermitida("https://usuario@github.com/a.apk"))
+        assertFalse(Seguridad.urlActualizacionPermitida(null))
+    }
+
+    @Test fun soloSeAbrenConversacionesConFormaValida() {
+        assertTrue(Seguridad.canalValido("general"))
+        assertTrue(Seguridad.canalValido("dm:ana.prueba:usuario prueba"))
+        assertTrue(Seguridad.canalValido("grp:3fa2b1c4d5e6f708"))
+        assertFalse(Seguridad.canalValido("grp:../../x"))
+        assertFalse(Seguridad.canalValido("javascript:alert(1)"))
+        assertFalse(Seguridad.canalValido(""))
+        assertFalse(Seguridad.canalValido(null))
+    }
 }

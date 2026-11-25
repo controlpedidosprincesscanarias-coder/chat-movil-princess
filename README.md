@@ -2,7 +2,7 @@
 
 > **Autoría:** la idea y el desarrollo de la aplicación, incluidas sus pruebas, son de **Víctor Alejandro Martín Andrade**, para el Departamento de Central de Compras de Princess Hotels en Canarias. Ver `AUTORIA.md`.
 
-**Versión actual: v1.0.24**
+**Versión actual: v1.0.26**
 
 El chat de Control de Pedidos en el móvil. Es el mismo chat que el del Organizador de escritorio: las mismas conversaciones, el mismo servidor y la misma cuenta. Se puede estar conectado a la vez en el PC y en el móvil.
 
@@ -26,6 +26,8 @@ El chat de Control de Pedidos en el móvil. Es el mismo chat que el del Organiza
 **Orden de la lista** (v1.0.22): General y «Control Pedidos» fijos arriba; debajo, la última conversación utilizada primero.
 
 **Sin internet** (v1.0.24): la cabecera dice «🔴 Sin conexión a internet» y los avisos lo explican en español (`datos/Errores.kt`); al volver la conexión, el chat se reconecta solo.
+
+**Seguridad** (v1.0.26, auditoría): las apps de Android (`.apk`…) recibidas por el chat no se abren, guardan ni comparten; las actualizaciones exigen su SHA-256 y vienen solo de GitHub; solo los avisos de la propia app abren una conversación; ningún dato pasa a otro móvil ni a la copia de Google (`res/xml/reglas_datos.xml`).
 
 **Cerrar sesión** (Ajustes) borra el usuario y la contraseña guardados en el móvil y deja de recibir avisos.
 
