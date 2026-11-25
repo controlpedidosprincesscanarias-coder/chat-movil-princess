@@ -1,3 +1,19 @@
+# v1.0.26
+
+- **Auditoría de seguridad** (petición de Víctor, 25 nov 2026: «que no exista ningún tipo de puerta por donde alguien o algo pudiera entrar en el móvil»). Se revisó todo lo que llega a la app desde fuera: otras apps del móvil, la red, los mensajes y archivos del chat, los enlaces y las actualizaciones. Se cierran cuatro puntos:
+  - **Apps de Android recibidas por el chat.** Una `.apk` enviada por el chat se abría con el instalador de Android, y esta app tiene permiso para instalar (lo usa para actualizarse). Ahora las apps (`.apk`, `.xapk`, `.aab`…, también con doble extensión) no se abren, no se guardan y no se comparten desde el chat. El servidor del chat v1.9.1 ya ni deja enviarlas.
+  - **Actualizaciones.** Solo se instala una versión nueva si trae su comprobación SHA-256 y se descarga de GitHub por https. Antes, una Release sin `.sha256` se instalaba sin comprobar. Android comprueba además que la versión nueva esté firmada con la misma clave.
+  - **Abrir conversaciones desde fuera.** Otra app del móvil podía abrir la app en una conversación con un título inventado. Ahora solo lo hacen los avisos de la propia app, que llevan una clave que nadie más conoce.
+  - **Cambio de móvil.** Ningún dato de la app (sesión, contraseña, ajustes) pasa a otro móvil ni a la copia de Google. En el móvil nuevo se vuelve a entrar con el usuario de Control de Pedidos.
+- Lo que ya estaba bien:
+  - todas las conexiones van cifradas (https/wss, sin tráfico sin cifrar);
+  - la contraseña va cifrada en el móvil;
+  - no hay ninguna clave en el código;
+  - los adjuntos solo se descargan del almacén del chat;
+  - los enlaces solo se abren si son http/https;
+  - los nombres de archivo se sanean;
+  - ninguna otra app puede usar el servicio ni los archivos de la app.
+
 # v1.0.24
 
 - **Mensaje claro sin conexión** (petición de Víctor, 25 nov 2026: «revisar el mensaje cuando no existe conexión en el chat móvil»). Sin internet (modo avión, sin datos ni wifi), el aviso de abajo enseñaba el error técnico de Android en inglés («Unable to resolve host…»). Ahora dice: «Sin conexión a internet. Comprueba los datos móviles o el wifi: el chat se conectará solo en cuanto vuelva».

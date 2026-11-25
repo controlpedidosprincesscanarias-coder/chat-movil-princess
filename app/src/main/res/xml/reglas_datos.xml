@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chat Dpto. Compras Princess (Android). Idea y desarrollo: Víctor Alejandro Martín Andrade.
+     (v1.0.26, auditoría de seguridad) Nada de la app (sesión, credenciales, preferencias, adjuntos) sale del móvil:
+     ni a la copia de Google ni al pasar los datos a un móvil nuevo (Android 12 y posteriores). En el móvil nuevo
+     se vuelve a entrar con el usuario y la contraseña de Control de Pedidos. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>

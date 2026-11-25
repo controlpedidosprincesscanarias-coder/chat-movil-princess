@@ -37,6 +37,7 @@ object Manual {
         Apartado("📎", "Fotos y documentos", listOf(
             "📎 → «Hacer una foto», «Foto de la galería» o «Documento». Antes de enviar se ve lo que vas a mandar; hasta 10 MB por archivo.",
             "Un toque en una foto o un documento recibido lo abre. Manteniéndolo pulsado: «Abrir», «Guardar en…» (elige la carpeta) o «Compartir» con otra app.",
+            "Por seguridad, las apps de Android (.apk) no se pueden enviar ni abrir desde el chat. Instala las apps solo desde su página oficial.",
         )),
         Apartado("🎬", "Enlaces y vídeos", listOf(
             "Los enlaces de los mensajes salen subrayados: púlsalos y se abren en su app (TikTok, YouTube…) o en el navegador.",

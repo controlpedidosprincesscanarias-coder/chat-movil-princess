@@ -23,6 +23,17 @@ object Avisos {
     const val CANAL_CONEXION = "conexion"
     const val EXTRA_CANAL = "canal_id"
     const val EXTRA_TITULO = "titulo"
+    const val EXTRA_CLAVE = "clave_aviso"
+
+    /** (v1.0.26, auditoría) Clave al azar, guardada solo en esta app, que llevan los avisos de mensaje. La pantalla
+     *  principal se puede abrir desde fuera (es la del icono), así que solo abre una conversación si el aviso trae
+     *  esta clave: otra app no puede abrir conversaciones ni poner títulos falsos. */
+    fun clave(context: Context): String {
+        val p = context.getSharedPreferences("seguridad", Context.MODE_PRIVATE)
+        return p.getString("clave_avisos", null) ?: java.util.UUID.randomUUID().toString().also {
+            p.edit().putString("clave_avisos", it).apply()
+        }
+    }
     const val ID_SERVICIO = 1
 
     fun crearCanales(context: Context) {
@@ -40,7 +51,7 @@ object Avisos {
     fun abrirApp(context: Context, canalId: String? = null, titulo: String? = null): PendingIntent {
         val i = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            if (canalId != null) { putExtra(EXTRA_CANAL, canalId); putExtra(EXTRA_TITULO, titulo) }
+            if (canalId != null) { putExtra(EXTRA_CANAL, canalId); putExtra(EXTRA_TITULO, titulo); putExtra(EXTRA_CLAVE, clave(context)) }
         }
         return PendingIntent.getActivity(context, (canalId ?: "").hashCode(), i,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
