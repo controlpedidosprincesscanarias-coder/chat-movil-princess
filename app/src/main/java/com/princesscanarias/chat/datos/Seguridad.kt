@@ -26,6 +26,28 @@ object Seguridad {
         return n
     }
 
+    /** (v1.0.26, auditoría de seguridad) Apps de Android y paquetes ejecutables: una .apk recibida por el chat
+     *  se abría con el instalador de Android, y esta app tiene permiso para instalar (lo usa para actualizarse).
+     *  Se mira cualquier trozo tras un punto (factura.apk.pdf, app.pdf.apk). */
+    private val EXT_APP = setOf("apk", "apks", "apkm", "xapk", "aab", "dex", "jar")
+    const val MIME_APK = "application/vnd.android.package-archive"
+
+    fun esAppAndroid(nombre: String?, mime: String?): Boolean {
+        if (mime?.trim()?.lowercase() == MIME_APK) return true
+        return (nombre ?: "").lowercase().split('.').drop(1).any { it.trim() in EXT_APP }
+    }
+
+    /** (v1.0.26) Las actualizaciones solo se descargan por https de GitHub (la API da enlaces de github.com). */
+    fun urlActualizacionPermitida(url: String?): Boolean = try {
+        val u = URI(url ?: "")
+        val h = u.host?.lowercase().orEmpty()
+        u.scheme == "https" && u.userInfo == null && (h == "github.com" || h.endsWith(".githubusercontent.com"))
+    } catch (e: Exception) { false }
+
+    /** (v1.0.26) Forma de un id de conversación: general, dm:a:b o grp:N (lo que llega de fuera se comprueba). */
+    fun canalValido(canal: String?): Boolean =
+        canal != null && canal.length <= 200 && Regex("general|dm:[^:]{1,80}:[^:]{1,80}|grp:[A-Za-z0-9_-]{1,60}").matches(canal)
+
     /** Versiones «v1.0.2» / «1.0.2» comparadas como números. */
     fun versionMayor(remota: String, local: String): Boolean {
         fun partes(v: String) = Regex("\\d+").findAll(v).map { it.value.toInt() }.toList()

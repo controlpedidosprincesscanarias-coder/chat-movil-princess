@@ -78,6 +78,7 @@ object Archivos {
 
     /** Guarda un adjunto descargado y lo abre con la app que corresponda. */
     fun abrir(context: Context, nombre: String, mime: String?, datos: ByteArray) {
+        if (Seguridad.esAppAndroid(nombre, mime)) return          // (v1.0.26) nunca el instalador de Android
         val (uri, tipo) = enCache(context, nombre, mime, datos)
         val i = Intent(Intent.ACTION_VIEW).setDataAndType(uri, tipo)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -98,6 +99,7 @@ object Archivos {
 
     /** (v1.0.6) «Compartir» un adjunto con otra app (WhatsApp, correo, Drive…). */
     fun compartir(context: Context, nombre: String, mime: String?, datos: ByteArray) {
+        if (Seguridad.esAppAndroid(nombre, mime)) return          // (v1.0.26)
         val (uri, tipo) = enCache(context, nombre, mime, datos)
         val i = Intent(Intent.ACTION_SEND).setType(tipo).putExtra(Intent.EXTRA_STREAM, uri)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

@@ -17,6 +17,7 @@ import com.princesscanarias.chat.datos.DetalleGrupo
 import com.princesscanarias.chat.datos.ErrorChat
 import com.princesscanarias.chat.datos.Errores
 import com.princesscanarias.chat.datos.Mensaje
+import com.princesscanarias.chat.datos.Seguridad
 import com.princesscanarias.chat.datos.OrdenConversaciones
 import com.princesscanarias.chat.datos.TarjetaEnlace
 import com.princesscanarias.chat.datos.Usuario
@@ -41,6 +42,10 @@ sealed class Pantalla {
 /** Estado de la interfaz: qué pantalla se ve, conversaciones, mensajes abiertos y avisos. */
 /** (v1.0.14) Al enviar: el otro está desactivado («usuario_desactivado») o ya no existe («usuario_no_existe»). */
 data class DestinoNoDisponible(val motivo: String, val mensaje: String, val canalId: String?)
+
+/** (v1.0.26) Por seguridad, las apps recibidas por el chat no se abren, ni se guardan, ni se comparten. */
+const val AVISO_APP = "Por seguridad, las apps de Android (.apk) no se pueden abrir, guardar ni compartir desde el chat. " +
+    "Instálalas solo desde su página oficial."
 
 class EstadoApp(app: Application) : AndroidViewModel(app) {
     val chat = Chat.de(app)
@@ -358,6 +363,7 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
 
     fun abrirAdjunto(m: Mensaje) {
         val adj = m.adjunto ?: return
+        if (Seguridad.esAppAndroid(adj.nombre, adj.mime)) { aviso.value = AVISO_APP; return }   // (v1.0.26)
         aviso.value = "Abriendo ${adj.nombre}…"
         enSegundoPlano({ chat.api.descargar(adj.url) }) { datos ->
             aviso.value = null
@@ -368,6 +374,7 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
     /** (v1.0.6) «Guardar en…»: descarga el adjunto y lo escribe en el sitio elegido con el selector de Android. */
     fun guardarAdjunto(m: Mensaje, destino: android.net.Uri?) {
         val adj = m.adjunto ?: return
+        if (Seguridad.esAppAndroid(adj.nombre, adj.mime)) { aviso.value = AVISO_APP; return }   // (v1.0.26)
         if (destino == null) return
         aviso.value = "Guardando ${adj.nombre}…"
         enSegundoPlano({ Archivos.guardar(getApplication(), destino, chat.api.descargar(adj.url)) }) {
@@ -378,6 +385,7 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
     /** (v1.0.6) «Compartir» un adjunto con otra app. */
     fun compartirAdjunto(m: Mensaje) {
         val adj = m.adjunto ?: return
+        if (Seguridad.esAppAndroid(adj.nombre, adj.mime)) { aviso.value = AVISO_APP; return }   // (v1.0.26)
         aviso.value = "Preparando ${adj.nombre}…"
         enSegundoPlano({ chat.api.descargar(adj.url) }) { datos ->
             aviso.value = null
