@@ -15,6 +15,7 @@ import com.princesscanarias.chat.datos.Chat
 import com.princesscanarias.chat.datos.Conversaciones
 import com.princesscanarias.chat.datos.DetalleGrupo
 import com.princesscanarias.chat.datos.ErrorChat
+import com.princesscanarias.chat.datos.Errores
 import com.princesscanarias.chat.datos.Mensaje
 import com.princesscanarias.chat.datos.OrdenConversaciones
 import com.princesscanarias.chat.datos.TarjetaEnlace
@@ -111,7 +112,7 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
         cargando.value = true
         viewModelScope.launch {
             val error = withContext(Dispatchers.IO) {
-                try { chat.entrar(usuario, clave); null } catch (e: Exception) { e.message ?: "No se pudo entrar" }
+                try { chat.entrar(usuario, clave); null } catch (e: Exception) { Errores.legible(e, "No se pudo entrar") }
             }
             cargando.value = false
             if (error == null) {
@@ -134,7 +135,7 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
     private fun <T> enSegundoPlano(bloque: () -> T, alTerminar: (T) -> Unit) {
         viewModelScope.launch {
             try { alTerminar(withContext(Dispatchers.IO) { bloque() }) } catch (e: Exception) {
-                aviso.value = e.message ?: "Error de conexión"
+                aviso.value = Errores.legible(e)
             }
         }
     }
@@ -147,9 +148,9 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
                     if (!texto.isNullOrEmpty()) borradorDevuelto.value = texto
                     destinoNoDisponible.value = DestinoNoDisponible(e.motivo!!, e.message ?: "", canal)
                     refrescarListaPronto()
-                } else aviso.value = e.message ?: "Error de conexión"
+                } else aviso.value = Errores.legible(e)
             } catch (e: Exception) {
-                aviso.value = e.message ?: "Error de conexión"
+                aviso.value = Errores.legible(e)
             }
         }
     }
@@ -335,7 +336,7 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
                 withContext(Dispatchers.IO) { f.writeBytes(chat.api.descargar(adj.url)) }
                 listo(f)
             } catch (e: Exception) {
-                f.delete(); aviso.value = e.message ?: "No se pudo descargar el mensaje de voz"; listo(null)
+                f.delete(); aviso.value = Errores.legible(e, "No se pudo descargar el mensaje de voz"); listo(null)
             }
         }
     }
@@ -420,7 +421,7 @@ class EstadoApp(app: Application) : AndroidViewModel(app) {
         aviso.value = "Descargando la versión ${v.version}…"
         enSegundoPlano({ Actualizaciones.descargar(getApplication(), v) }) { apk ->
             aviso.value = null
-            try { Actualizaciones.instalar(getApplication(), apk) } catch (e: Exception) { aviso.value = e.message }
+            try { Actualizaciones.instalar(getApplication(), apk) } catch (e: Exception) { aviso.value = Errores.legible(e, "No se pudo abrir el instalador") }
         }
     }
 }

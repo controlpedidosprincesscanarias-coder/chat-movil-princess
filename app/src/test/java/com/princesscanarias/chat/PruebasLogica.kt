@@ -16,6 +16,8 @@ import com.princesscanarias.chat.datos.Reenvio
 import com.princesscanarias.chat.datos.Usuario
 import com.princesscanarias.chat.datos.Seguridad
 import com.princesscanarias.chat.datos.Sonidos
+import com.princesscanarias.chat.datos.Errores
+import com.princesscanarias.chat.datos.ErrorChat
 import com.princesscanarias.chat.datos.OrdenConversaciones
 import com.princesscanarias.chat.datos.Voz
 import com.princesscanarias.chat.ui.Emoticonos
@@ -308,5 +310,28 @@ class PruebasLogica {
             canal("dm:ana:luis", "privado", "2026-11-19T09:00:00+00:00"),
             canal("general", "general", null))).map { it.id }
         assertEquals(listOf("general", "dm:ana:luis"), orden)
+    }
+
+    // ── (v1.0.24) Mensajes claros cuando no hay conexión ─────────────────────
+    @Test fun sinInternetUnMensajeClaroYNoElDeAndroid() {
+        val e = java.net.UnknownHostException("Unable to resolve host \"proxy-chat.ejemplo.dev\": No address associated with hostname")
+        assertEquals(Errores.SIN_INTERNET, Errores.legible(e))
+        assertFalse(Errores.legible(e).contains("resolve"))
+        assertEquals(Errores.SIN_INTERNET, Errores.legible(java.net.ConnectException("failed to connect")))
+        assertEquals(Errores.SIN_INTERNET, Errores.legible(java.net.SocketException("Network is unreachable")))
+    }
+
+    @Test fun otrosFallosDeRed() {
+        assertEquals(Errores.TARDA, Errores.legible(java.net.SocketTimeoutException("timeout")))
+        assertEquals(Errores.SEGURA, Errores.legible(javax.net.ssl.SSLHandshakeException("handshake")))
+        assertEquals(Errores.SIN_RESPUESTA, Errores.legible(java.io.IOException("unexpected end of stream")))
+        // El fallo real puede venir envuelto en otro
+        assertEquals(Errores.SIN_INTERNET, Errores.legible(RuntimeException("x", java.net.UnknownHostException("h"))))
+    }
+
+    @Test fun losMensajesPropiosSeDejanTalCual() {
+        assertEquals("La sesión ha caducado. Vuelve a entrar.", Errores.legible(ErrorChat("La sesión ha caducado. Vuelve a entrar.", 401)))
+        assertEquals("No se pudo entrar", Errores.legible(IllegalArgumentException("boom"), "No se pudo entrar"))
+        assertEquals(Errores.SIN_RESPUESTA, Errores.legible(null))
     }
 }

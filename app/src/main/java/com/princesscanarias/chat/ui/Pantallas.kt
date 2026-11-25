@@ -63,6 +63,7 @@ import com.princesscanarias.chat.datos.Notas
 import com.princesscanarias.chat.datos.Reenvio
 import com.princesscanarias.chat.datos.Seguridad
 import com.princesscanarias.chat.datos.Enlaces
+import com.princesscanarias.chat.datos.Errores
 import com.princesscanarias.chat.datos.Sonidos
 import com.princesscanarias.chat.servicio.ElegirTono
 import com.princesscanarias.chat.servicio.SonidosCanales
@@ -252,6 +253,7 @@ private fun textoEstado(e: EstadoConexion) = when (e) {
     EstadoConexion.CONECTADO -> "🟢 Conectado"
     EstadoConexion.CONECTANDO -> "🟡 Conectando…"
     EstadoConexion.DESCONECTADO -> "🔴 Sin conexión"
+    EstadoConexion.SIN_RED -> "🔴 Sin conexión a internet"      // (v1.0.24)
     EstadoConexion.SIN_SESION -> "Sin sesión"
 }
 
@@ -274,7 +276,9 @@ fun PantallaConversacion(e: EstadoApp, p: Pantalla.Conversacion) {
 
     fun preparar(uri: Uri?, nombre: String? = null) {
         if (uri == null) return
-        try { pendiente = Archivos.preparar(ctx, uri, nombre) } catch (ex: Exception) { e.aviso.value = ex.message }
+        try { pendiente = Archivos.preparar(ctx, uri, nombre) } catch (ex: Exception) {
+            e.aviso.value = if (ex is IllegalStateException) ex.message else Errores.legible(ex, "No se pudo preparar el archivo")
+        }
     }
     val galeria = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { preparar(it) }
     val documento = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { preparar(it) }

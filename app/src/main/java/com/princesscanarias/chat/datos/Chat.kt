@@ -3,6 +3,9 @@
 package com.princesscanarias.chat.datos
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.util.Log
 import io.socket.client.IO
 import io.socket.client.Socket
@@ -17,7 +20,8 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 
-enum class EstadoConexion { DESCONECTADO, CONECTANDO, CONECTADO, SIN_SESION }
+/** SIN_RED (v1.0.24): el móvil no tiene internet (modo avión, sin datos ni wifi). */
+enum class EstadoConexion { DESCONECTADO, CONECTANDO, CONECTADO, SIN_SESION, SIN_RED }
 
 /**
  * Punto único de la app: sesión, conexión en tiempo real (Socket.IO) y caché de nombres.
@@ -60,6 +64,34 @@ class Chat(context: Context) {
     fun fotoDe(usuario: String?): String? = usuario?.let { fotos[it.lowercase()] }
     @Volatile private var socket: Socket? = null
     @Volatile private var ultimoLogin = 0L
+
+    /** (v1.0.24) ¿Tiene el móvil internet? Sin él, la cabecera dice «Sin conexión a internet» en vez de quedarse
+     *  en «Conectando…», y al volver la conexión el chat se reconecta solo. */
+    @Volatile var hayRed = true
+        private set
+
+    init {
+        try {
+            val cm = app.getSystemService(ConnectivityManager::class.java)
+            hayRed = cm?.activeNetwork?.let { cm.getNetworkCapabilities(it)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) } ?: false
+            cm?.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    hayRed = true
+                    if (_estado.value == EstadoConexion.SIN_RED) { _estado.value = EstadoConexion.CONECTANDO; conectar() }
+                }
+                override fun onLost(network: Network) {
+                    hayRed = false
+                    if (credenciales.hayCredenciales) _estado.value = EstadoConexion.SIN_RED
+                }
+            })
+        } catch (e: Exception) {
+            Log.w(TAG, "No se pudo vigilar la conexión del móvil: ${e.message}")
+            hayRed = true        // sin poder saberlo, se intenta conectar como siempre
+        }
+    }
+
+    /** Estado mientras no hay conexión con el chat: sin internet o intentándolo. */
+    private fun sinConexion() = if (hayRed) EstadoConexion.CONECTANDO else EstadoConexion.SIN_RED
 
     /** Conversación que se está viendo ahora en pantalla (para no avisar de lo que ya se ve). */
     @Volatile var canalVisible: String? = null
@@ -110,11 +142,12 @@ class Chat(context: Context) {
     fun conectar() {
         if (!credenciales.hayCredenciales) { _estado.value = EstadoConexion.SIN_SESION; return }
         if (socket?.connected() == true) return
+        if (!hayRed) { _estado.value = EstadoConexion.SIN_RED; return }   // (v1.0.24) se reintenta al volver la red
         ambito.launch {
             _estado.value = EstadoConexion.CONECTANDO
             if (api.cookie.isEmpty() && !api.reiniciarSesion()) {
-                _estado.value = EstadoConexion.DESCONECTADO
-                _errores.tryEmit("No se pudo iniciar sesión en Control de Pedidos")
+                _estado.value = if (hayRed) EstadoConexion.DESCONECTADO else EstadoConexion.SIN_RED
+                _errores.tryEmit(if (hayRed) "No se pudo iniciar sesión en Control de Pedidos" else Errores.SIN_INTERNET)
                 return@launch
             }
             if (nombres.isEmpty()) refrescarNombres()
@@ -135,10 +168,11 @@ class Chat(context: Context) {
         }
         val s = IO.socket(api.urlChat, opciones)
         s.on(Socket.EVENT_CONNECT) { _estado.value = EstadoConexion.CONECTADO }
-        s.on(Socket.EVENT_DISCONNECT) { _estado.value = EstadoConexion.CONECTANDO }
+        s.on(Socket.EVENT_DISCONNECT) { _estado.value = sinConexion() }
         s.on(Socket.EVENT_CONNECT_ERROR) {
             // El servidor rechaza la conexión si la sesión caducó (cada día): nueva sesión y socket nuevo
-            _estado.value = EstadoConexion.CONECTANDO
+            _estado.value = sinConexion()
+            if (!hayRed) return@on                 // (v1.0.24) sin internet no se pide sesión: se reintenta al volver
             // Como mucho un intento de sesión por minuto: si el fallo es de red o el servicio está
             // despertando, Socket.IO ya reintenta solo y no hace falta pedir sesiones de más.
             val ahora = System.currentTimeMillis()

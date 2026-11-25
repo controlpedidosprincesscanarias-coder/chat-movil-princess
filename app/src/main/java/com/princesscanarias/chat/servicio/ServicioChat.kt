@@ -40,6 +40,7 @@ class ServicioChat : Service() {
                     EstadoConexion.CONECTADO -> "Conectado: te avisará de los mensajes nuevos"
                     EstadoConexion.CONECTANDO -> "Conectando…"
                     EstadoConexion.DESCONECTADO -> "Sin conexión, reintentando…"
+                    EstadoConexion.SIN_RED -> "Sin internet: se conectará al volver la conexión"   // (v1.0.24)
                     EstadoConexion.SIN_SESION -> "Sin sesión"
                 }
                 getSystemService(android.app.NotificationManager::class.java)
