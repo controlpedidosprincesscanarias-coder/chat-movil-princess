@@ -1,3 +1,9 @@
+# v1.0.24
+
+- **Mensaje claro sin conexión** (petición de Víctor, 25 nov 2026: «revisar el mensaje cuando no existe conexión en el chat móvil»). Sin internet (modo avión, sin datos ni wifi), el aviso de abajo enseñaba el error técnico de Android en inglés («Unable to resolve host…»). Ahora dice: «Sin conexión a internet. Comprueba los datos móviles o el wifi: el chat se conectará solo en cuanto vuelva».
+  - También hay textos claros cuando el chat tarda en responder o no se puede abrir una conexión segura (algunas wifi públicas).
+- **La cabecera dice «🔴 Sin conexión a internet»** en vez de quedarse para siempre en «🟡 Conectando…». El aviso fijo «Chat conectado» dice lo mismo. En cuanto vuelve la conexión, el chat se reconecta solo.
+
 # v1.0.22
 
 - **Sonidos de los mensajes** (petición de Víctor, 20 nov 2026: «que se pueda cambiar el sonido de los mensajes, pudiendo elegir diferentes según el chat o grupo»):

@@ -80,6 +80,7 @@ object Manual {
         Apartado("📲", "Notificaciones y ahorro de batería", listOf(
             "Acepta las notificaciones para enterarte de los mensajes con la app cerrada.",
             "El aviso fijo «Chat conectado» es lo que mantiene la conexión; al encender el móvil se vuelve a conectar solo.",
+            "Sin internet (modo avión, sin datos ni wifi), arriba sale «🔴 Sin conexión a internet». En cuanto vuelve la conexión, el chat se conecta solo.",
             "En Ajustes, pulsa «Quitar el ahorro de batería». En algunos móviles (Xiaomi, Huawei, Oppo…) hay que permitir además el «inicio automático».",
         )),
         Apartado("👤", "Mi foto y la del grupo", listOf(
