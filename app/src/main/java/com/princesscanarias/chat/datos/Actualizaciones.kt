@@ -34,14 +34,14 @@ object Actualizaciones {
             val tag = o.texto("tag_name") ?: return null
             if (!Seguridad.versionMayor(tag, versionActual)) return null
             val assets = o.optJSONArray("assets") ?: return null
-            var apk: JSONObject? = null; var sha: String? = null
-            for (i in 0 until assets.length()) {
-                val a = assets.getJSONObject(i)
-                val n = a.optString("name")
-                if (n.endsWith(".apk")) apk = a
-                if (n.endsWith(".apk.sha256")) sha = a.texto("browser_download_url")
-            }
-            apk ?: return null
+            // (v1.0.26) La Release puede traer varias .apk (ChatPrincess.apk y ChatPrincess_X.apk): se usa la que
+            // corresponde a su .sha256, para que lo comprobado sea exactamente lo que se instala.
+            val lista = (0 until assets.length()).map { assets.getJSONObject(it) }
+            val shaAsset = lista.firstOrNull { it.optString("name").endsWith(".apk.sha256") }
+            val sha: String? = shaAsset?.texto("browser_download_url")
+            val nombreApk = shaAsset?.optString("name")?.removeSuffix(".sha256")
+            val apk: JSONObject = lista.firstOrNull { it.optString("name") == nombreApk }
+                ?: lista.lastOrNull { it.optString("name").endsWith(".apk") } ?: return null
             // (v1.0.26) Sin su .sha256 o con enlaces que no sean de GitHub, no se ofrece la versión
             if (sha == null || !Seguridad.urlActualizacionPermitida(sha) ||
                 !Seguridad.urlActualizacionPermitida(apk.optString("browser_download_url"))) return null
